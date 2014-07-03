@@ -425,7 +425,7 @@ Platform::Platform() :
 	 */
 
 	/* map vga memory and enable it */
-	addr_t core_local_addr = _map_page(0xb8, 1, false);
+	addr_t core_local_addr = _map_pages(0xb8, 1);
 	if (!core_local_addr)
 		PERR("could not map framebuffer");
 	else {
