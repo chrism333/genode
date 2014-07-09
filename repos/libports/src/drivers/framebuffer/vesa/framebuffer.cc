@@ -235,10 +235,12 @@ int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
 	if (!io_mem_cap.valid()) {
 		X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode, VESA_MODE_OFFS);
 
+		addr_t phys = mode_info->phys_base + width*height*mode/8;
+		
 		printf("Found: physical frame buffer at 0x%08x size: 0x%08x\n",
-		       mode_info->phys_base,
+		       phys,
 		       ctrl_info->total_memory << 16);
-		map_io_mem(mode_info->phys_base, ctrl_info->total_memory << 16, true,
+		map_io_mem(phys, ctrl_info->total_memory << 16, true,
 		           &fb, 0, &io_mem_cap);
 	}
 

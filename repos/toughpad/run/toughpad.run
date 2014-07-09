@@ -22,6 +22,8 @@ set build_components {
 	server/fs_log
 	test/libc_vfs
 	hello
+	test/framebuffer 
+	drivers/framebuffer
 }
 
 build $build_components
@@ -94,8 +96,11 @@ set config {
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="LOG"/></provides>
 		<config>
-			<policy label="hello_server" file="/server.log" />
-			<policy label="hello_client" file="/client.log" />
+			<policy label="hello_server" file="/hello.log" />
+			<policy label="hello_client" file="/hello.log" />
+			<policy label="fb_sdl" file="/fb.log" />
+			<policy label="fb_drv" file="/fb.log" />
+			<policy label="test-framebuffer" file="/fb.log" />
 			<libc stdout="/dev/log">
 			<vfs>
 				<dir name="dev"> <log/> </dir>
@@ -123,9 +128,28 @@ set config {
 		</route>
 		<resource name="RAM" quantum="1M"/>
 	</start>
-}
+	
+	<start name="fb_drv">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Framebuffer"/></provides>
+	    <config width="1280"
+				height="800"
+				depth="16"
+				buffered="yes" />
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 
-append config {
+	</start>
+	
+	<start name="test-framebuffer">
+		<resource name="RAM" quantum="10M"/>
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
 </config>
 }
 
@@ -143,6 +167,7 @@ set boot_modules {
 	fs_log hello_client hello_server
 	rump.lib.so rump_fs.lib.so rump_fs
 	ld.lib.so libc.lib.so 
+	fb_drv test-framebuffer
 }
 
 build_boot_image $boot_modules
