@@ -17,13 +17,19 @@ set build_components {
 	drivers/acpi
 	drivers/pci
 	drivers/ahci
+	drivers/framebuffer
+	drivers/input
+	drivers/usb
 	server/part_blk
 	server/rump_fs
 	server/fs_log
-	test/libc_vfs
-	hello
-	test/framebuffer 
-	drivers/framebuffer
+	server/nitpicker 
+	server/liquid_framebuffer  
+	server/nitlog
+	test/nitpicker 
+	test/framebuffer
+	app/launchpad
+	app/scout
 }
 
 build $build_components
@@ -96,11 +102,10 @@ set config {
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="LOG"/></provides>
 		<config>
-			<policy label="hello_server" file="/hello.log" />
-			<policy label="hello_client" file="/hello.log" />
-			<policy label="fb_sdl" file="/fb.log" />
 			<policy label="fb_drv" file="/fb.log" />
-			<policy label="test-framebuffer" file="/fb.log" />
+			<policy label="usb_drv" file="/usb.log" />
+			<policy label="nitpicker" file="/nitpicker.log" />
+			<policy label="launchpad" file="/launchpad.log" />
 			<libc stdout="/dev/log">
 			<vfs>
 				<dir name="dev"> <log/> </dir>
@@ -113,38 +118,43 @@ set config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
-	<start name="hello_server">
-		<resource name="RAM" quantum="1M"/>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
+		<provides><service name="Input"/></provides>
+		<config ehci="yes" uhci="yes" xhci="no"> <hid/> </config>
 		<route>
 			<service name="LOG"><child name="fs_log" /></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
-		<provides><service name="Hello"/></provides>
 	</start>
-	<start name="hello_client">
-		<route>
-			<service name="LOG"><child name="fs_log" /></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-		<resource name="RAM" quantum="1M"/>
-	</start>
-	
 	<start name="fb_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
-	    <config width="1280"
-				height="800"
-				depth="16"
-				buffered="yes" />
+	    <route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="nitpicker">
+		<resource name="RAM" quantum="4M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<global-keys>
+				<key name="KEY_SCROLLLOCK" operation="xray" />
+				<key name="KEY_SYSRQ"      operation="kill" />
+				<key name="KEY_PRINT"      operation="kill" />
+				<key name="KEY_F11"        operation="kill" />
+				<key name="KEY_F12"        operation="xray" />
+			</global-keys>
+		</config>
 		<route>
 			<service name="LOG"><child name="fs_log" /></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
-
 	</start>
-	
-	<start name="test-framebuffer">
-		<resource name="RAM" quantum="10M"/>
+	<start name="launchpad">
+		<resource name="RAM" quantum="64M" />
+		<configfile name="launchpad.config" />
 		<route>
 			<service name="LOG"><child name="fs_log" /></service>
 			<any-service><parent/><any-child/></any-service>
@@ -153,7 +163,33 @@ set config {
 </config>
 }
 
+# 	<start name="test-framebuffer">
+# 		<resource name="RAM" quantum="10M"/>
+# 		<route>
+# 			<service name="LOG"><child name="fs_log" /></service>
+# 			<any-service><parent/><any-child/></any-service>
+# 		</route>
+# 	</start>
+
+
 install_config $config
+
+#
+# Create launchpad configuration
+#
+set launchpad_config_fd [open "bin/launchpad.config" w]
+puts $launchpad_config_fd {<config>
+	<launcher name="testnit"   ram_quota="768K" />
+	<launcher name="scout"     ram_quota="41M" />
+	<launcher name="launchpad" ram_quota="6M">
+		<configfile name="launchpad.config" />
+	</launcher>
+	<launcher name="nitlog"    ram_quota="1M" />
+	<launcher name="liquid_fb" ram_quota="7M" />
+		<config resize_handle="on" />
+	<launcher name="nitpicker" ram_quota="1M" />
+</config>}
+close $launchpad_config_fd
 
 #
 # Boot modules
@@ -164,10 +200,13 @@ set boot_modules {
 	core init timer
 	ld.lib.so libc.lib.so
 	ahci part_blk pci_device_pd acpi_drv pci_drv
-	fs_log hello_client hello_server
-	rump.lib.so rump_fs.lib.so rump_fs
+	fs_log rump.lib.so rump_fs.lib.so rump_fs
 	ld.lib.so libc.lib.so 
 	fb_drv test-framebuffer
+	nitpicker liquid_fb launchpad scout
+	testnit nitlog
+	launchpad.config
+	ps2_drv usb_drv 
 }
 
 build_boot_image $boot_modules
@@ -175,6 +214,8 @@ build_boot_image $boot_modules
 #
 # Execute test case
 #
+# append qemu_args " -m 256 "
+# run_genode_until forever
 
 set builddir [pwd]
 set tooldir [file dirname $argv0]

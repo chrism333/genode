@@ -156,6 +156,7 @@ int Framebuffer_drv::use_current_mode()
 	}
 
 	if (!io_mem_cap.valid()) {
+		mode_info->phys_base += mode_info->x_resolution*mode_info->y_resolution*mode_info->bits_per_pixel/8;
 		printf("Found: physical frame buffer at 0x%08x size: 0x%08x\n",
 		       mode_info->phys_base,
 		       ctrl_info->total_memory << 16);
@@ -235,14 +236,17 @@ int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
 	if (!io_mem_cap.valid()) {
 		X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode, VESA_MODE_OFFS);
 
-		addr_t phys = mode_info->phys_base + width*height*mode/8;
+ 		mode_info->phys_base += width*height*mode/8;
 		
 		printf("Found: physical frame buffer at 0x%08x size: 0x%08x\n",
-		       phys,
+		       mode_info->phys_base,
 		       ctrl_info->total_memory << 16);
-		map_io_mem(phys, ctrl_info->total_memory << 16, true,
+		map_io_mem(mode_info->phys_base, ctrl_info->total_memory << 16, true,
 		           &fb, 0, &io_mem_cap);
 	}
+	
+// 	for(int i = 0; i < 10000; i++)
+// 	  *(((unsigned short*) fb) + i) = 0xffff;
 
 	if (verbose)
 		X86emu::print_regions();
