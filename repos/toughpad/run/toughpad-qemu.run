@@ -73,9 +73,10 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
-	<start name="ps2_drv">
-		<resource name="RAM" quantum="1M"/>
+	<start name="usb_drv">
+		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
+		<config ehci="yes" uhci="yes" xhci="yes"> <hid/> </config>
 	</start>
 	<start name="fb_drv">
 		<resource name="RAM" quantum="4M"/>
@@ -152,5 +153,5 @@ build_boot_image $boot_modules
 #
 # Execute test case
 #
-append qemu_args " -m 256 "
+append qemu_args " -m 256 -usbdevice mouse -usbdevice keyboard"
 run_genode_until forever

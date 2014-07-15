@@ -121,7 +121,7 @@ set config {
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
-		<config ehci="yes" uhci="yes" xhci="no"> <hid/> </config>
+		<config ehci="yes" uhci="yes" xhci="yes"> <hid/> </config>
 		<route>
 			<service name="LOG"><child name="fs_log" /></service>
 			<any-service><parent/><any-child/></any-service>
@@ -134,6 +134,10 @@ set config {
 			<service name="LOG"><child name="fs_log" /></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
+ 		<config width="1280"
+				height="800"
+				depth="16"
+				buffered="yes" />
 	</start>
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
