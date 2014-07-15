@@ -77,13 +77,13 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 		case ABS_X:
 		case ABS_MT_POSITION_X: // XXX treat every MT Position event as a normal Mouse event
 			arg_type = EVENT_TYPE_MOTION;
-			arg_ax = value;
+			arg_ax = (value * 1280) / 15360; // XXX hardcoded mapping for Toughpad FZ-M1
 			break;
 
 		case ABS_Y:
 		case ABS_MT_POSITION_Y: // XXX treat every MT Position event as a normal Mouse event
 			arg_type = EVENT_TYPE_MOTION;
-			arg_ay = value;
+			arg_ay = (value * 800) / 8640; // XXX hardcoded mapping for the Toughpad FZ-M1
 			break;
 
 		case ABS_WHEEL:
