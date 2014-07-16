@@ -12,7 +12,7 @@ set use_atapi_drv   [have_spec x86]
 #
 
 set build_components {
-	core init
+	core init virtualbox
 	drivers/timer
 	drivers/acpi
 	drivers/pci
@@ -20,6 +20,7 @@ set build_components {
 	drivers/framebuffer
 	drivers/input
 	drivers/usb
+	drivers/rtc
 	server/part_blk
 	server/rump_fs
 	server/fs_log
@@ -82,6 +83,12 @@ set config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 	</start>
+	<start name="rtc_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Rtc"/>
+		</provides>
+	</start>
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nitpicker"/></provides>
@@ -94,22 +101,53 @@ set config {
 				<key name="KEY_F12"        operation="xray" />
 			</global-keys>
 		</config>
+		<route>
+			<service name="Framebuffer"><child name="fb_drv" /></service>
+			<service name="Input"><child name="usb_drv" /></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
 	</start>
 	<start name="launchpad">
 		<resource name="RAM" quantum="64M" />
 		<configfile name="launchpad.config" />
 	</start>
+	<start name="android_fb">
+		 <binary name="liquid_fb"/>
+		 <config
+			xpos="100"
+			ypos="100"
+			width="800"
+			height="600"
+			animate="off"
+			title="Android Framebuffer"
+			resize_handle="off"
+			decoration="on"
+		/>
+		<resource name="RAM" quantum="4M" />
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+	</start>
+	<start name="virtualbox">
+		<resource name="RAM" quantum="1G"/>
+		<config>
+			<image type="iso" file="test.iso" />
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<rom name="test.iso" />
+				</vfs>
+			</libc>
+		</config>
+		<route>
+			<service name="Framebuffer"><child name="android_fb" /></service>
+			<service name="Input"><child name="android_fb" /></service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
 </config>
 }
-
-# 	<start name="test-framebuffer">
-# 		<resource name="RAM" quantum="10M"/>
-# 		<route>
-# 			<service name="LOG"><child name="fs_log" /></service>
-# 			<any-service><parent/><any-child/></any-service>
-# 		</route>
-# 	</start>
-
 
 install_config $config
 
@@ -140,12 +178,16 @@ set boot_modules {
 	ld.lib.so libc.lib.so
 	ahci part_blk pci_device_pd acpi_drv pci_drv
 	fs_log rump.lib.so rump_fs.lib.so rump_fs
-	ld.lib.so libc.lib.so 
 	fb_drv test-framebuffer
 	nitpicker liquid_fb launchpad scout
 	testnit nitlog
 	launchpad.config
 	ps2_drv usb_drv 
+	virtualbox test.iso
+	libm.lib.so pthread.lib.so
+	libc_lock_pipe.lib.so libc_terminal.lib.so
+	libiconv.lib.so
+	rtc_drv
 }
 
 build_boot_image $boot_modules
@@ -153,5 +195,5 @@ build_boot_image $boot_modules
 #
 # Execute test case
 #
-append qemu_args " -m 256 -usbdevice mouse -usbdevice keyboard"
+append qemu_args " -m 2048 -usbdevice mouse -usbdevice keyboard"
 run_genode_until forever

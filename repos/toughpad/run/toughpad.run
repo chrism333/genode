@@ -13,6 +13,7 @@ set use_atapi_drv   [have_spec x86]
 
 set build_components {
 	core init
+	virtualbox
 	drivers/timer
 	drivers/acpi
 	drivers/pci
@@ -20,6 +21,7 @@ set build_components {
 	drivers/framebuffer
 	drivers/input
 	drivers/usb
+	drivers/rtc
 	server/part_blk
 	server/rump_fs
 	server/fs_log
@@ -106,6 +108,7 @@ set config {
 			<policy label="usb_drv" file="/usb.log" />
 			<policy label="nitpicker" file="/nitpicker.log" />
 			<policy label="launchpad" file="/launchpad.log" />
+			<policy label="virtualbox" file="/virtualbox.log" />
 			<libc stdout="/dev/log">
 			<vfs>
 				<dir name="dev"> <log/> </dir>
@@ -139,6 +142,12 @@ set config {
 				depth="16"
 				buffered="yes" />
 	</start>
+		<start name="rtc_drv">
+		<resource name="RAM" quantum="1M"/>
+		<provides>
+			<service name="Rtc"/>
+		</provides>
+	</start>
 	<start name="nitpicker">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Nitpicker"/></provides>
@@ -153,6 +162,8 @@ set config {
 		</config>
 		<route>
 			<service name="LOG"><child name="fs_log" /></service>
+			<service name="Framebuffer"><child name="fb_drv" /></service>
+			<service name="Input"><child name="usb_drv" /></service>
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
@@ -162,6 +173,42 @@ set config {
 		<route>
 			<service name="LOG"><child name="fs_log" /></service>
 			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="android_fb">
+		 <binary name="liquid_fb"/>
+		 <config
+			xpos="100"
+			ypos="100"
+			width="800"
+			height="600"
+			animate="off"
+			title="Android Framebuffer"
+			resize_handle="off"
+			decoration="on"
+		/>
+		<resource name="RAM" quantum="4M" />
+		<provides>
+			<service name="Framebuffer"/>
+			<service name="Input"/>
+		</provides>
+	</start>
+	<start name="virtualbox">
+		<resource name="RAM" quantum="1G"/>
+		<config>
+			<image type="iso" file="test.iso" />
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<rom name="test.iso" />
+				</vfs>
+			</libc>
+		</config>
+		<route>
+			<service name="Framebuffer"><child name="android_fb" /></service>
+			<service name="Input"><child name="android_fb" /></service>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 </config>
@@ -211,6 +258,11 @@ set boot_modules {
 	testnit nitlog
 	launchpad.config
 	ps2_drv usb_drv 
+	virtualbox test.iso
+	libm.lib.so pthread.lib.so
+	libc_lock_pipe.lib.so libc_terminal.lib.so
+	libiconv.lib.so
+	rtc_drv
 }
 
 build_boot_image $boot_modules
