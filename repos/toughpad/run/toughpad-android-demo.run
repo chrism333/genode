@@ -119,6 +119,7 @@ append config {
 				<key name="KEY_SCROLLLOCK" operation="xray" />
 				<key name="KEY_SYSRQ"      operation="kill" />
 				<key name="KEY_PRINT"      operation="kill" />
+				<key name="KEY_F10"        operation="android" label="android_fb"/>
 				<key name="KEY_F11"        operation="kill" />
 				<key name="KEY_F12"        operation="xray" />
 			</global-keys>
@@ -152,7 +153,7 @@ append config {
 		<binary name="liquid_fb"/>
 		<config
 			xpos="0"
-			ypos="10"
+			ypos="0"
 			width="1280"
 			height="790"
 			animate="off"
