@@ -36,7 +36,7 @@ create_boot_directory
 # Basic configuration
 
 set config {
-<config>
+<config prio_levels="4">
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
@@ -53,7 +53,7 @@ set config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<start name="timer">
+	<start name="timer" priority="0"> 
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
@@ -62,7 +62,7 @@ set config {
 # Basic driver configuration
 
 append config {
-	<start name="acpi">
+	<start name="acpi" priority="-1">
 		<resource name="RAM" quantum="32M"/>
 		<binary name="acpi_drv"/>
 		<provides>
@@ -74,7 +74,7 @@ append config {
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
-	<start name="fb_drv">
+	<start name="fb_drv" priority="-1">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
  		<config width="1280"
@@ -82,7 +82,7 @@ append config {
 				depth="16"
 				buffered="yes" />
 	</start>
-	<start name="usb_drv">
+	<start name="usb_drv" priority="-1">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
 		<config ehci="yes" uhci="yes" xhci="yes"> <hid/> </config>
@@ -92,13 +92,13 @@ append config {
 # Android configuration
 
 append config {
-	<start name="rtc_drv">
+	<start name="rtc_drv" priority="-1">
 		<resource name="RAM" quantum="1M"/>
 		<provides>
 			<service name="Rtc"/>
 		</provides>
 	</start>
-	<start name="virtualbox">
+	<start name="virtualbox" priority="-2">
 		<resource name="RAM" quantum="1G"/>
 		<config>
 			<image type="iso" file="android.iso" />
