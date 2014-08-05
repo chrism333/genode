@@ -167,6 +167,13 @@ append config {
 			<service name="Framebuffer"/>
 		</provides>
 	</start>
+	<start name="nitlog">
+		<affinity xpos="0" ypos="0" width="1" height="1" />
+		<resource name="RAM" quantum="4M" />
+		<provides>
+			<service name="LOG"/>
+		</provides>
+	</start>
 	<start name="virtualbox">
 		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="1G"/>
@@ -180,6 +187,7 @@ append config {
 			</libc>
 		</config>
 		<route>
+			<service name="LOG"><child name="nitlog" /></service>
 			<service name="Framebuffer"><child name="android_fb" /></service>
 			<service name="Input"><child name="android_fb" /></service>
 			<any-service> <parent/> <any-child /> </any-service>
