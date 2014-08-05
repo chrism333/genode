@@ -78,7 +78,7 @@ append config {
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
  		<config width="1280"
-				height="800"
+				height="1024"
 				depth="16"
 				buffered="yes" />
 	</start>
