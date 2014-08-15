@@ -25,5 +25,9 @@ extern "C" int VBoxUsbRegister(PCPDMUSBREGCB pCallbacks, uint32_t u32Version)
 
 	int rc = 0;
 
+	rc = pCallbacks->pfnRegister(pCallbacks, &g_UsbHidMou);
+		if (RT_FAILURE(rc))
+			return rc;
+
 	return rc;
 }

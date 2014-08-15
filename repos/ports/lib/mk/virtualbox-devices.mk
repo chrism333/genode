@@ -36,6 +36,7 @@ SRC_CC += Devices/USB/DevOHCI.cpp
 SRC_CC += Devices/USB/VUSBDevice.cpp
 SRC_CC += Devices/USB/VUSBUrb.cpp
 SRC_CC += Devices/USB/VUSBReadAhead.cpp
+SRC_CC += Devices/Input/UsbMouse.cpp
 
 
 INC_DIR += $(VBOX_DIR)/Devices/build
