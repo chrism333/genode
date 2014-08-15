@@ -1,10 +1,12 @@
 /*
  * \brief  VirtualBox host drivers
  * \author Norman Feske
+ * \author Christian Menard <christian.menard@ksyslabs.org>
  * \date   2013-08-20
  */
 
 /*
+ * Copyright (C) 2014 Ksys Labs LLC
  * Copyright (C) 2013 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
@@ -34,6 +36,7 @@ extern "C" int VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_t u32Version
 		&g_DrvHostSerial,
 		&g_DrvVD,
 		&g_DrvHostInterface,
+		&g_DrvVUSBRootHub,
 		0
 	};
 

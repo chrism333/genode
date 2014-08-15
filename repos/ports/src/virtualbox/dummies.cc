@@ -1,10 +1,12 @@
 /*
  * \brief  Dummy implementations of symbols needed by VirtualBox
  * \author Norman Feske
+ * \author Christian Menard <christian.menard@ksyslabs.org>
  * \date   2013-08-22
  */
 
 /*
+ * Copyright (C) 2014 Ksys Labs LLC
  * Copyright (C) 2013 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
@@ -252,6 +254,7 @@ DUMMY(-1, RTAvlrU64RangeRemove)
 DUMMY(-1, RTAvlrU64Remove)
 DUMMY(-1, RTLdrClose)
 DUMMY(-1, RTMemDupExTag)
+DUMMY(-1, RTMemDupTag)
 DUMMY(-1, rtPathRootSpecLen)
 DUMMY(-1, RTPathStartsWithRoot)
 DUMMY(-1, RTSocketToNative)

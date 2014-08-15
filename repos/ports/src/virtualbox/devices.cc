@@ -1,10 +1,12 @@
 /*
  * \brief  VirtualBox device models
  * \author Norman Feske
+ * \author Christian Menard <christian.menard@ksyslabs.org>
  * \date   2013-08-20
  */
 
 /*
+ * Copyright (C) 2014 Ksys Labs LLC
  * Copyright (C) 2013 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
@@ -116,6 +118,11 @@ extern "C" int VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t u32Version)
 		return rc;
 
 	rc = pCallbacks->pfnRegister(pCallbacks, &g_DeviceIOAPIC);
+	if (RT_FAILURE(rc))
+		return rc;
+	
+	/* USB */
+	rc = pCallbacks->pfnRegister(pCallbacks, &g_DeviceOHCI);
 	if (RT_FAILURE(rc))
 		return rc;
 

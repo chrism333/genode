@@ -32,6 +32,10 @@ SRC_CC += Devices/VMMDev/VMMDevHGCM.cpp
 SRC_CC += GuestHost/HGSMI/HGSMICommon.cpp
 SRC_CC += Devices/Serial/DevSerial.cpp
 SRC_CC += Devices/PC/DevIoApic.cpp
+SRC_CC += Devices/USB/DevOHCI.cpp
+SRC_CC += Devices/USB/VUSBDevice.cpp
+SRC_CC += Devices/USB/VUSBUrb.cpp
+SRC_CC += Devices/USB/VUSBReadAhead.cpp
 
 
 INC_DIR += $(VBOX_DIR)/Devices/build

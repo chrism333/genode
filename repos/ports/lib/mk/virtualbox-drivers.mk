@@ -10,6 +10,7 @@ SRC_CC += Devices/Serial/DrvChar.cpp
 SRC_CC += Devices/Serial/DrvRawFile.cpp
 SRC_CC += Devices/Serial/DrvHostSerial.cpp
 SRC_CC += Main/src-client/MouseImpl.cpp
+SRC_CC += Devices/USB/DrvVUSBRootHub.cpp
 
 SRC_CC += network.cpp
 
