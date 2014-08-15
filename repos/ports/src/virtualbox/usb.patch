@@ -1,0 +1,24 @@
++++ src/app/virtualbox/src/VBox/Frontends/VBoxBFE/VBoxBFE.cpp
+@@ -1801,6 +1809,22 @@
+     rc = CFGMR3InsertInteger(pCfg,  "Object",        (uintptr_t)gVMMDev);           UPDATE_RC();
+ 
+     /*
++     * USB
++     */
++#if defined(VBOX_WITH_USB)
++    rc = CFGMR3InsertNode(pDevices, "usb-ohci",      &pDev);                        UPDATE_RC();
++    rc = CFGMR3InsertNode(pDev,     "0",             &pInst);                       UPDATE_RC();
++    rc = CFGMR3InsertNode(pInst,    "Config",        &pCfg);                        UPDATE_RC();
++    rc = CFGMR3InsertInteger(pInst, "Trusted",       1);                            UPDATE_RC();
++    rc = CFGMR3InsertNode(pInst,    "LUN#0",         &pLunL0);                      UPDATE_RC();
++    rc = CFGMR3InsertString(pLunL0, "Driver",        "VUSBRootHub");                UPDATE_RC();
++    rc = CFGMR3InsertNode(pLunL0,   "Config",        &pCfg);                        UPDATE_RC();
++    
++    PCFGMNODE pUsbDevices = NULL;
++    rc = CFGMR3InsertNode(pRoot,     "USB", &pUsbDevices);                          UPDATE_RC();
++#endif
++
++    /*
+      * AC'97 ICH audio
+      */
+     if (g_fAudio)
