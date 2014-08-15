@@ -5,7 +5,7 @@ include $(REP_DIR)/lib/mk/virtualbox-common.inc
 TARGET = virtualbox
 SRC_CC = main.cc cxx_dummies.cc devices.cc drivers.cc dummies.cc libc.cc \
          logger.cc mm.cc pdm.cc pgm.cc rt.cc sup.cc iommio.cc ioport.cc \
-         hwaccm.cc thread.cc dynlib.cc 
+         hwaccm.cc thread.cc dynlib.cc usb.cc
 
 LIBS  += base
 LIBS  += config_args

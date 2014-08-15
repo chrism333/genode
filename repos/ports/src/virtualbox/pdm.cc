@@ -1,10 +1,12 @@
 /*
  * \brief  VirtualBox pluggable device manager (PDM)
  * \author Norman Feske
+ * \author Christian Menard <christian.menard@ksyslabs.org>
  * \date   2013-08-20
  */
 
 /*
+ * Copyright (C) 2014 Ksys Labs LLC
  * Copyright (C) 2013 Genode Labs GmbH
  *
  * This file is distributed under the terms of the GNU General Public License
@@ -19,6 +21,7 @@
 #include <VBox/vmm/pdmapi.h>
 #include <VBox/vmm/pdmdrv.h>
 #include <VBox/vmm/pdmdev.h>
+#include <VBox/vmm/pdmusb.h>
 
 #include "util.h"
 
@@ -73,10 +76,12 @@ int PDMR3LdrGetSymbolR0Lazy(PVM pVM, const char *pszModule,
 
 extern "C" int VBoxDriversRegister(PCPDMDRVREGCB, uint32_t);
 extern "C" int VBoxDevicesRegister(PPDMDEVREGCB,  uint32_t);
+extern "C" int VBoxUsbRegister(PCPDMUSBREGCB,     uint32_t);
 
 
 static int dummy_VBoxDriversRegister(PCPDMDRVREGCB, uint32_t) { return VINF_SUCCESS; }
 static int dummy_VBoxDevicesRegister(PPDMDEVREGCB,  uint32_t) { return VINF_SUCCESS; }
+static int dummy_VBoxUsbRegister(PCPDMUSBREGCB,     uint32_t) { return VINF_SUCCESS; }
 
 
 int PDMR3LdrGetSymbolR3(PVM pVM, const char *pszModule, const char *pszSymbol,
@@ -104,6 +109,12 @@ int PDMR3LdrGetSymbolR3(PVM pVM, const char *pszModule, const char *pszSymbol,
 			PDBG("return VBoxDevicesRegister pointer");
 			return VINF_SUCCESS;
 		}
+
+		if (Genode::strcmp(pszSymbol, "VBoxUsbRegister") == 0) {
+			*ppvValue = (void *)VBoxUsbRegister;
+			PDBG("return VBoxUsbRegister pointer");
+			return VINF_SUCCESS;
+		}
 	}
 
 	if (Genode::strcmp(pszModule, "VBoxDD2") == 0) {
@@ -117,6 +128,12 @@ int PDMR3LdrGetSymbolR3(PVM pVM, const char *pszModule, const char *pszSymbol,
 			*ppvValue = (void *)dummy_VBoxDevicesRegister;
 			return VINF_SUCCESS;
 		}
+
+		if (Genode::strcmp(pszSymbol, "VBoxUsbRegister") == 0) {
+			*ppvValue = (void *)VBoxUsbRegister;
+			return VINF_SUCCESS;
+		}
+
 	}
 
 	PDBG("pszModule=%s pszSymbol=%s", pszModule, pszSymbol);
