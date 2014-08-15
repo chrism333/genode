@@ -22,3 +22,46 @@
       * AC'97 ICH audio
       */
      if (g_fAudio)
+
++++ src/app/virtualbox/src/VBox/Devices/USB/DevOHCI.cpp
+@@ -3654,7 +3654,9 @@
+ #else
+     pOhci->SofTime = TMTimerGet(pOhci->CTX_SUFF(pEndOfFrameTimer));
+ #endif
++    TMTimerLock(pOhci->CTX_SUFF(pEndOfFrameTimer), VINF_SUCCESS);
+     TMTimerSet(pOhci->CTX_SUFF(pEndOfFrameTimer), pOhci->SofTime + pOhci->cTicksPerFrame);
++    TMTimerUnlock(pOhci->CTX_SUFF(pEndOfFrameTimer));
+ 
+     /*
+      * Check that the HCCA address isn't bogus. Linux 2.4.x is known to start
+@@ -3776,7 +3778,9 @@
+         if (uNewFrameRate == OHCI_DEFAULT_TIMER_FREQ)
+         {
+             /* If we're switching back to full speed, re-program the timer immediately to minimize latency. */
++            TMTimerLock(pOhci->CTX_SUFF(pEndOfFrameTimer), VINF_SUCCESS);
+             TMTimerSet(pOhci->CTX_SUFF(pEndOfFrameTimer), pOhci->SofTime + pOhci->cTicksPerFrame);
++            TMTimerUnlock(pOhci->CTX_SUFF(pEndOfFrameTimer));
+         }
+     }
+ }
+@@ -3841,7 +3845,11 @@
+ static void ohciBusStop(POHCI pOhci)
+ {
+     if (pOhci->CTX_SUFF(pEndOfFrameTimer))
++    {
++        TMTimerLock(pOhci->CTX_SUFF(pEndOfFrameTimer), VINF_SUCCESS);
+         TMTimerStop(pOhci->CTX_SUFF(pEndOfFrameTimer));
++        TMTimerUnlock(pOhci->CTX_SUFF(pEndOfFrameTimer));
++    }
+     VUSBIDevPowerOff(pOhci->RootHub.pIDev);
+ }
+ 
+@@ -5556,7 +5564,7 @@
+     /*
+      * Create the end-of-frame timer.
+      */
+-    rc = PDMDevHlpTMTimerCreate(pDevIns, TMCLOCK_VIRTUAL, ohciFrameBoundaryTimer, pOhci,
++    rc = PDMDevHlpTMTimerCreate(pDevIns, TMCLOCK_VIRTUAL_SYNC, ohciFrameBoundaryTimer, pOhci,
+                                 TMTIMER_FLAGS_DEFAULT_CRIT_SECT, "USB Frame Timer",
+                                 &pOhci->pEndOfFrameTimerR3);
+     if (RT_FAILURE(rc))
