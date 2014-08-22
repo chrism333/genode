@@ -83,7 +83,8 @@ append config {
  		<config width="1280"
 				height="800"
 				depth="16"
-				buffered="yes" />
+				buffered="yes"
+				offset="yes"/>
 	</start>
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>

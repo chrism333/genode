@@ -50,4 +50,6 @@ namespace Framebuffer_drv {
 	               Genode::Dataspace_capability *out_io = 0);
 }
 
+bool config_attribute(const char *attr_name);
+
 #endif /* _FRAMEBUFFER_H_ */
