@@ -103,6 +103,8 @@ class Multiplexer
 
 			blit(src, bypp*mode.width(), dst, bypp*mode.width(),
 				  bypp*(x2 - x1 + 1), y2 - y1 + 1);
+
+			_fb.refresh(x, y, w, h);
 		} 
 		
 		void switch_fb() {
