@@ -5,7 +5,7 @@
 #include <base/stdint.h>
 #include <framebuffer_session/connection.h>
 #include <input_session/connection.h>
-#include <input/root.h>
+#include <input/component.h>
 #include <cap_session/connection.h>
 #include <input/event.h>
 #include <os/static_root.h>
@@ -72,8 +72,7 @@ class Multiplexer
 
 		void refresh(int x, int y, int w, int h, int id) {
 			Genode::Lock::Guard guard(_lock);
-			
-			PINF("refrsh: id = %d, _current_id = %d this=%lx", id, _current_id, this);
+
 			if( id != _current_id)
 				return;
 		
@@ -117,6 +116,7 @@ class Multiplexer
 		
 		void submit(Input::Event& ev) {
 			Genode::Lock::Guard guard(_lock);
+
 			if(_current_id == 1)
 				_input_1.submit(ev);
 			else
@@ -131,7 +131,7 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 	private:
 
 		Multiplexer&        _mp;
-		int                            _id;
+		int                 _id;
 
 	public:
 
@@ -157,64 +157,105 @@ class Framebuffer::Session_component : public Genode::Rpc_object<Session>
 		}
 };
 
-/***********************************************
- ** Implementation of the input service **
- ***********************************************/
+namespace Framebuffer { class Root_component; }
 
-namespace Input { class Session_component; }
+class Framebuffer::Root_component : public Genode::Root_component<Session_component>
+{
+	private:
 
-// class Input::Session_component : public Genode::Rpc_object<Session>
-// {
-// 	private:
-// 
-// 		Input::Connection &_input;
-// 
-// 	public:
-// 
-// 		Session_component(Input::Connection &input)
-// 		: _input(input) { }
-// 
-// 		Genode::Dataspace_capability dataspace() override {
-// 			return _input.dataspace(); }
-// 
-// 		bool is_pending() const override {
-// 			return _input.is_pending(); }
-// 
-// 		int flush() override {
-// 			return _input.flush(); }
-// 
-// 		void sigh(Genode::Signal_context_capability sigh) override {
-// 			return _input.sigh( sigh); }
-// };
+		int session_count = 0;
+		Session_component& _session1;
+		Session_component& _session2;
+  
+	protected:
+
+		/**
+		 * Root component interface
+		 */
+		Session_component *_create_session(const char *args)
+		{
+			session_count++;
+			if(session_count == 1)
+			   return &_session1;
+			else if( session_count == 2)
+			   return &_session2;
+			
+			PERR("Invalid session request, fb_switcher provides only two framebuffer sessions!");
+			throw Root::Unavailable();
+		}
+
+	public:
+
+		Root_component( Genode::Rpc_entrypoint *session_ep, Genode::Allocator *md_alloc, Session_component& session1, Session_component& session2)
+		: Genode::Root_component<Session_component>(session_ep, md_alloc), _session1(session1), _session2(session2) { }
+};
+
+
+namespace Input { class Root_component; }
+
+class Input::Root_component : public Genode::Root_component<Session_component>
+{
+	private:
+
+		int session_count = 0;
+		Session_component& _session1;
+		Session_component& _session2;
+  
+	protected:
+
+		/**
+		 * Root component interface
+		 */
+		Session_component *_create_session(const char *args)
+		{
+			session_count++;
+			if(session_count == 1)
+			{
+				_session1.event_queue().enabled(true);
+				return &_session1;
+			}
+			else if( session_count == 2)
+			{
+				_session2.event_queue().enabled(true);
+				return &_session2;
+			}
+			
+			PERR("Invalid session request, fb_switcher provides only two input sessions!");
+			throw Root::Unavailable();
+		}
+
+	public:
+
+		Root_component( Genode::Rpc_entrypoint *session_ep, Genode::Allocator *md_alloc, Session_component& session1, Session_component& session2)
+		: Genode::Root_component<Session_component>(session_ep, md_alloc), _session1(session1), _session2(session2) { }
+};
 
 
 Multiplexer& init_services(Genode::Rpc_entrypoint &ep, Framebuffer::Connection &framebuffer, Input::Connection &input)
 {
 	using namespace Genode;
 
-	static Input::Session_component input_session;
-	static Input::Root_component input_root(ep, input_session);
-	
-	static Input::Session_component dummy;
+	static Input::Session_component input_session1;
+	static Input::Session_component input_session2;
+	static Input::Root_component input_root(&ep, Genode::env()->heap(), input_session1, input_session2);
 
+	static Multiplexer multiplexer(framebuffer, input_session1, input_session2);
+	static Framebuffer::Session_component fb_session1(multiplexer, 1);
+	static Framebuffer::Session_component fb_session2(multiplexer, 2);
 	
-	static Multiplexer fb_multiplexer(framebuffer, input_session, dummy);
-	
-	static Framebuffer::Session_component fb_session(fb_multiplexer, 1);
-	static Static_root<Framebuffer::Session> fb_root(ep.manage(&fb_session));
+	static Framebuffer::Root_component fb_root(&ep, Genode::env()->heap(), fb_session1, fb_session2);
 
 	/*
 	 * Now, the root interfaces are ready to accept requests.
 	 * This is the right time to tell mummy about our services.
 	 */
 	env()->parent()->announce(ep.manage(&fb_root));
- 	env()->parent()->announce(ep.manage(&input_root));
-	
-	return fb_multiplexer;
+	env()->parent()->announce(ep.manage(&input_root));
+
+	return multiplexer;
 }
 
 
- 
 int main(int, char **)
 {
 	using namespace Genode;
@@ -229,22 +270,28 @@ int main(int, char **)
 
 	Input::Event *ev_buf = static_cast<Input::Event *>
 	                       (env()->rm_session()->attach(ev_ds_cap));
-	
+
 	/* initialize server entry point */
 	enum { STACK_SIZE = 2*1024*sizeof(Genode::addr_t) };
 	static Genode::Rpc_entrypoint ep(&cap, STACK_SIZE, "fb_switcher_ep");
-	
+
 	/* initialize public services */
 	Multiplexer& mp = init_services(ep, framebuffer, input);
+   
+	int key_count = 0;
 	
-						   
-	while (1) {
-	  
-	  
+	while (1) { 
 		unsigned num_events = input.flush();
 	  
 		for (Input::Event *event = ev_buf; num_events--; event++) {
-			if( event->type()  == Input::Event::PRESS && event->code() == 68) // F10 pressed?
+
+			// keep track of number of pressed keyes
+			if( event->type()  == Input::Event::PRESS)
+				key_count++;
+			else if( event->type()  == Input::Event::RELEASE)
+				key_count--;
+		  
+			if( event->type()  == Input::Event::PRESS && event->code() == 68 && key_count == 1) // F10 pressed and are all other buttons released?
 				mp.switch_fb();
 			else
 			    mp.submit(*event);
