@@ -1,19 +1,24 @@
 /* Genode includes */
+#include <base/cancelable_lock.h>
 #include <base/env.h>
+#include <base/lock.h>
+#include <base/lock_guard.h>
 #include <base/printf.h>
 #include <base/rpc_server.h>
 #include <base/stdint.h>
+
+#include <cap_session/connection.h>
 #include <framebuffer_session/connection.h>
 #include <input_session/connection.h>
 #include <input/component.h>
-#include <cap_session/connection.h>
 #include <input/event.h>
-#include <os/static_root.h>
+#include <timer_session/connection.h>
+
 #include <os/attached_ram_dataspace.h>
+
 #include <blit/blit.h>
-#include <base/lock.h>
-#include <base/lock_guard.h>
-#include <base/cancelable_lock.h>
+
+
 
 /***********************************************
  ** Implementation of the framebuffer service **
@@ -264,9 +269,10 @@ int main(int, char **)
 
 	PDBG("--- fb_switcher service started ---");
 
-	static Framebuffer::Connection framebuffer;
-	static Input::Connection       input;
-	static Cap_connection          cap;
+	Framebuffer::Connection framebuffer;
+	Input::Connection       input;
+	Cap_connection          cap;
+	Timer::Connection       timer;
 
 	Dataspace_capability ev_ds_cap = input.dataspace();
 
@@ -298,6 +304,8 @@ int main(int, char **)
 			else
 			    mp.submit(*event);
 		}
+		
+		timer.msleep(2);
 	}
 	return 0;
 }
