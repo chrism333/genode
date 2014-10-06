@@ -13,11 +13,12 @@
 
 
 /* Genode includes */
-#include <nitpicker_view/client.h>
+#include <nitpicker_session/client.h>
 
 /* Qt includes */
 #include <qpa/qwindowsysteminterface.h>
 #include <qpa/qplatformscreen.h>
+#include <QGuiApplication>
 #include <QDebug>
 
 #include "qnitpickerplatformwindow.h"
@@ -124,20 +125,39 @@ void QNitpickerPlatformWindow::_process_key_event(Input::Event *ev)
 	_keyboard_handler.processKeycode(keycode, pressed, false);
 }
 
-Nitpicker::View_capability QNitpickerPlatformWindow::_create_view()
+Nitpicker::Session::View_handle QNitpickerPlatformWindow::_create_view()
 {
 	if (window()->type() == Qt::Desktop)
-		return Nitpicker::View_capability();
+		return Nitpicker::Session::View_handle();
 
 	if (window()->type() == Qt::Dialog)
-		return _nitpicker_session.create_view(Nitpicker::View_capability());
+		return _nitpicker_session.create_view();
+
+	/*
+	 * Popup menus should never get a window decoration, therefore we set a top
+	 * level Qt window as 'transient parent'.
+	 */
+	if (!window()->transientParent() && (window()->type() == Qt::Popup)) {
+		QWindow *top_window = QGuiApplication::topLevelWindows().first();
+	    window()->setTransientParent(top_window);
+	}
 
 	if (window()->transientParent()) {
 		QNitpickerPlatformWindow *parent_platform_window =
 			static_cast<QNitpickerPlatformWindow*>(window()->transientParent()->handle());
-		return _nitpicker_session.create_view(parent_platform_window->view_cap());
-	} else
-		return _nitpicker_session.create_view(Nitpicker::View_capability());
+
+		Nitpicker::Session::View_handle parent_handle =
+			_nitpicker_session.view_handle(parent_platform_window->view_cap());
+
+		Nitpicker::Session::View_handle result =
+			_nitpicker_session.create_view(parent_handle);
+
+		_nitpicker_session.release_view_handle(parent_handle);
+
+		return result;
+	}
+
+	return _nitpicker_session.create_view();
 }
 
 void QNitpickerPlatformWindow::_adjust_and_set_geometry(const QRect &rect)
@@ -155,6 +175,8 @@ void QNitpickerPlatformWindow::_adjust_and_set_geometry(const QRect &rect)
 	                       Framebuffer::Mode::RGB565);
 	_nitpicker_session.buffer(mode, false);
 
+	_framebuffer_changed = true;
+
 	emit framebuffer_changed();
 }
 
@@ -163,7 +185,8 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window, Genode::Rpc_
 : QPlatformWindow(window),
   _framebuffer_session(_nitpicker_session.framebuffer_session()),
   _framebuffer(0),
-  _view_cap(_create_view()),
+  _framebuffer_changed(false),
+  _view_handle(_create_view()),
   _input_session(_nitpicker_session.input_session()),
   _timer(this),
   _keyboard_handler("", -1, false, false, ""),
@@ -180,10 +203,12 @@ QNitpickerPlatformWindow::QNitpickerPlatformWindow(QWindow *window, Genode::Rpc_
 	_ev_buf = static_cast<Input::Event *>
 			  (Genode::env()->rm_session()->attach(_input_session.dataspace()));
 
-	if (_view_cap.valid()) {
+	if (_view_handle.valid()) {
+
 		/* bring the view to the top */
-		Nitpicker::View_client(_view_cap).stack(Nitpicker::View_capability(),
-					                            true, false);
+		typedef Nitpicker::Session::Command Command;
+		_nitpicker_session.enqueue<Command::To_front>(_view_handle);
+		_nitpicker_session.execute();
 	}
 
 	connect(_timer, SIGNAL(timeout()), this, SLOT(handle_events()));
@@ -227,11 +252,17 @@ void QNitpickerPlatformWindow::setGeometry(const QRect &rect)
 
 	if (window()->isVisible()) {
 		QRect g(geometry());
-		Nitpicker::View_client(_view_cap).viewport(g.x(),
-				                                   g.y(),
-				                                   g.width(),
-				                                   g.height(),
-				                                   0, 0, true);
+
+		if (window()->transientParent()) {
+			/* translate global position to parent-relative position */
+			g.moveTo(window()->transientParent()->mapFromGlobal(g.topLeft()));
+		}
+
+		typedef Nitpicker::Session::Command Command;
+		_nitpicker_session.enqueue<Command::Geometry>(_view_handle,
+		             Nitpicker::Rect(Nitpicker::Point(g.x(), g.y()),
+		                             Nitpicker::Area(g.width(), g.height())));
+		_nitpicker_session.execute();
 	}
 
 	if (qnpw_verbose)
@@ -257,15 +288,28 @@ void QNitpickerPlatformWindow::setVisible(bool visible)
 	if (qnpw_verbose)
 	    qDebug() << "QNitpickerPlatformWindow::setVisible(" << visible << ")";
 
+	typedef Nitpicker::Session::Command Command;
+
 	if (visible) {
-		QRect g = geometry();
-		Nitpicker::View_client(_view_cap).viewport(g.x(), g.y(),
-				                                   g.width(),
-				                                   g.height(),
-				                                   0, 0, true);
-	} else
-		Nitpicker::View_client(_view_cap).viewport(0, 0, 0, 0, 0, 0,
-				                                   false);
+		QRect g(geometry());
+
+		if (window()->transientParent()) {
+			/* translate global position to parent-relative position */
+			g.moveTo(window()->transientParent()->mapFromGlobal(g.topLeft()));
+		}
+
+		_nitpicker_session.enqueue<Command::Geometry>(_view_handle,
+		     Nitpicker::Rect(Nitpicker::Point(g.x(), g.y()),
+		                     Nitpicker::Area(g.width(), g.height())));
+	} else {
+
+		_nitpicker_session.enqueue<Command::Geometry>(_view_handle,
+		     Nitpicker::Rect(Nitpicker::Point(), Nitpicker::Area(0, 0)));
+	}
+
+	_nitpicker_session.execute();
+
+
 
 	QPlatformWindow::setVisible(visible);
 
@@ -322,8 +366,12 @@ void QNitpickerPlatformWindow::setWindowTitle(const QString &title)
 
 	_title = title.toLocal8Bit();
 
-	if (_view_cap.valid())
-		Nitpicker::View_client(_view_cap).title(_title.constData());
+	typedef Nitpicker::Session::Command Command;
+
+	if (_view_handle.valid()) {
+		_nitpicker_session.enqueue<Command::Title>(_view_handle, _title.constData());
+		_nitpicker_session.execute();
+	}
 
 	if (qnpw_verbose)
 	    qDebug() << "QNitpickerPlatformWindow::setWindowTitle() finished";
@@ -345,8 +393,10 @@ void QNitpickerPlatformWindow::setWindowIcon(const QIcon &icon)
 
 void QNitpickerPlatformWindow::raise()
 {
-	if (qnpw_verbose)
-	    qDebug() << "QNitpickerPlatformWindow::raise()";
+	/* bring the view to the top */
+	_nitpicker_session.enqueue<Nitpicker::Session::Command::To_front>(_view_handle);
+	_nitpicker_session.execute();
+
 	QPlatformWindow::raise();
 }
 
@@ -488,12 +538,23 @@ bool QNitpickerPlatformWindow::frameStrutEventsEnabled() const
 unsigned char *QNitpickerPlatformWindow::framebuffer()
 {
 	if (qnpw_verbose)
-	    qDebug() << "QNitpickerPlatformWindow::framebuffer()";
+	    qDebug() << "QNitpickerPlatformWindow::framebuffer()" << _framebuffer;
 
-	if (_framebuffer)
-	    Genode::env()->rm_session()->detach(_framebuffer);
+	/*
+	 * The new framebuffer is acquired in this function to avoid a time span when
+	 * the nitpicker buffer would be black and not refilled yet by Qt.
+	 */
 
-	_framebuffer = Genode::env()->rm_session()->attach(_framebuffer_session.dataspace());
+	if (_framebuffer_changed) {
+
+	    _framebuffer_changed = false;
+
+		if (_framebuffer != 0)
+		    Genode::env()->rm_session()->detach(_framebuffer);
+
+		_framebuffer = Genode::env()->rm_session()->attach(_framebuffer_session.dataspace());
+	}
+
 	return _framebuffer;
 }
 
@@ -517,7 +578,8 @@ void QNitpickerPlatformWindow::egl_surface(EGLSurface egl_surface)
 
 Nitpicker::View_capability QNitpickerPlatformWindow::view_cap() const
 {
-	return _view_cap;
+	QNitpickerPlatformWindow *npw = const_cast<QNitpickerPlatformWindow *>(this);
+	return npw->_nitpicker_session.view_capability(_view_handle);
 }
 
 void QNitpickerPlatformWindow::handle_events()

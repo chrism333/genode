@@ -14,24 +14,40 @@
 #ifndef _VIEW_H_
 #define _VIEW_H_
 
+/* Genode includes */
 #include <util/string.h>
 #include <util/list.h>
+#include <util/dirty_rect.h>
+#include <base/weak_ptr.h>
+#include <base/rpc_server.h>
 
+/* local includes */
 #include "mode.h"
 #include "session.h"
 
 class Buffer;
 
+#include <framebuffer_session/framebuffer_session.h>
+extern Framebuffer::Session *tmp_fb;
+
+
+typedef Genode::Dirty_rect<Rect, 3> Dirty_rect;
+
 
 /*
- * For each buffer, there is a list of views that belong to
- * this buffer. This list is called Same_buffer_list.
+ * For each buffer, there is a list of views that belong to this buffer.
  */
 struct Same_buffer_list_elem : Genode::List<Same_buffer_list_elem>::Element { };
 
-
+/*
+ * The view stack holds a list of all visible view in stacking order.
+ */
 struct View_stack_elem : Genode::List<View_stack_elem>::Element { };
 
+/*
+ * Each session maintains a list of views owned by the session.
+ */
+struct Session_view_list_elem : Genode::List<Session_view_list_elem>::Element { };
 
 /*
  * If a view has a parent, it is a list element of its parent view
@@ -39,39 +55,72 @@ struct View_stack_elem : Genode::List<View_stack_elem>::Element { };
 struct View_parent_elem : Genode::List<View_parent_elem>::Element { };
 
 
+namespace Nitpicker { class View; }
+
+
+/*
+ * We use view capabilities as mere tokens to pass views between sessions.
+ * There is no RPC interface associated with a view.
+ */
+struct Nitpicker::View { GENODE_RPC_INTERFACE(); };
+
+
 class View : public Same_buffer_list_elem,
+             public Session_view_list_elem,
              public View_stack_elem,
-             public View_parent_elem
+             public View_parent_elem,
+             public Genode::Weak_object<View>,
+             public Genode::Rpc_object<Nitpicker::View>
 {
 	public:
 
 		enum { TITLE_LEN = 32 };   /* max.characters of a title */
 
-		enum Stay_top    { NOT_STAY_TOP    = 0, STAY_TOP    = 1 };
 		enum Transparent { NOT_TRANSPARENT = 0, TRANSPARENT = 1 };
 		enum Background  { NOT_BACKGROUND  = 0, BACKGROUND  = 1 };
 
 	private:
 
-		Stay_top    const _stay_top;      /* keep view always on top      */
 		Transparent const _transparent;   /* background is partly visible */
 		Background        _background;    /* view is a background view    */
 
-		View    *_parent;         /* parent view                          */
-		Rect     _geometry;       /* position and size relative to parent */
-		Rect     _label_rect;     /* position and size of label           */
-		Point    _buffer_off;     /* offset to the visible buffer area    */
-		Session &_session;        /* session that created the view        */
-		char     _title[TITLE_LEN];
+		View      *_parent;         /* parent view                          */
+		Rect       _geometry;       /* position and size relative to parent */
+		Rect       _label_rect;     /* position and size of label           */
+		Point      _buffer_off;     /* offset to the visible buffer area    */
+		Session   &_session;        /* session that created the view        */
+		char       _title[TITLE_LEN];
+		Dirty_rect _dirty_rect;
 
 		Genode::List<View_parent_elem> _children;
 
+		/**
+		 * Assign new parent
+		 *
+		 * Normally, the parent of a view is defined at the construction time
+		 * of the view. However, if the domain origin changes at runtime, we
+		 * need to dynamically re-assign the pointer origin as the parent.
+		 */
+		void _assign_parent(View *parent)
+		{
+			if (_parent == parent)
+				return;
+
+			if (_parent)
+				_parent->remove_child(*this);
+
+			_parent = parent;
+
+			if (_parent)
+				_parent->add_child(*this);
+		}
+
 	public:
 
-		View(Session &session, Stay_top stay_top, Transparent transparent,
+		View(Session &session, Transparent transparent,
 		     Background bg, View *parent)
 		:
-			_stay_top(stay_top), _transparent(transparent), _background(bg),
+			_transparent(transparent), _background(bg),
 			_parent(parent), _session(session)
 		{ title(""); }
 
@@ -79,11 +128,13 @@ class View : public Same_buffer_list_elem,
 		{
 			/* break link to our parent */
 			if (_parent)
-				_parent->remove_child(this);
+				_parent->remove_child(*this);
 
 			/* break links to our children */
-			while (View_parent_elem *e = _children.first())
+			while (View_parent_elem *e = _children.first()) {
 				static_cast<View *>(e)->dissolve_from_parent();
+				_children.remove(e);
+			}
 		}
 
 		/**
@@ -114,16 +165,33 @@ class View : public Same_buffer_list_elem,
 			_geometry = Rect();
 		}
 
+		bool has_parent(View const &parent) const { return &parent == _parent; }
+
+		void apply_origin_policy(View &pointer_origin)
+		{
+			if (session().origin_pointer() && !has_parent(pointer_origin))
+				_assign_parent(&pointer_origin);
+
+			if (!session().origin_pointer() && has_parent(pointer_origin))
+				_assign_parent(0);
+		}
+
 		Rect geometry() const { return _geometry; }
 
 		void geometry(Rect geometry) { _geometry = geometry; }
 
-		void add_child(View const *child) { _children.insert(child); }
+		void add_child(View const &child) { _children.insert(&child); }
 
-		void remove_child(View const *child) { _children.remove(child); }
+		void remove_child(View const &child) { _children.remove(&child); }
 
 		template <typename FN>
-		void for_each_child(FN const &fn) const {
+		void for_each_child(FN const &fn) {
+			for (View_parent_elem *e = _children.first(); e; e = e->next())
+				fn(*static_cast<View *>(e));
+		}
+
+		template <typename FN>
+		void for_each_const_child(FN const &fn) const {
 			for (View_parent_elem const *e = _children.first(); e; e = e->next())
 				fn(*static_cast<View const *>(e));
 		}
@@ -133,11 +201,10 @@ class View : public Same_buffer_list_elem,
 		 */
 		virtual int frame_size(Mode const &mode) const
 		{
-			if (mode.focused_view()
-			 && mode.focused_view()->belongs_to(_session))
-				return 5;
+			if (_session.xray_opaque()) return 1;
+			if (_session.xray_no())     return 0;
 
-			return 3;
+			return mode.is_focused(_session) ? 5 : 3;
 		}
 
 		/**
@@ -181,7 +248,6 @@ class View : public Same_buffer_list_elem,
 		bool same_session_as(View const &other) const { return &_session == &other._session; }
 
 		bool  top_level()   const { return _parent == 0; }
-		bool  stay_top()    const { return _stay_top; }
 		bool  transparent() const { return _transparent || _session.uses_alpha(); }
 		bool  background()  const { return _background; }
 		Rect  label_rect()  const { return _label_rect; }
@@ -212,6 +278,23 @@ class View : public Same_buffer_list_elem,
 
 			return true;
 		}
+
+		/**
+		 * Mark part of view as dirty
+		 *
+		 * \param rect  dirty rectangle in absolute coordinates
+		 */
+		void mark_as_dirty(Rect rect) { _dirty_rect.mark_as_dirty(rect); }
+
+		/**
+		 * Return dirty-rectangle information
+		 */
+		Dirty_rect dirty_rect() const { return _dirty_rect; }
+
+		/**
+		 * Reset dirty rectangle
+		 */
+		void mark_as_clean() { _dirty_rect = Dirty_rect(); }
 };
 
 #endif /* _VIEW_H_ */

@@ -14,9 +14,7 @@
 
 /* Genode includes */
 #include <base/thread_state.h>
-
-/* base-hw includes */
-#include <placement_new.h>
+#include <unmanaged_singleton.h>
 
 /* core includes */
 #include <kernel/kernel.h>
@@ -150,7 +148,7 @@ void Thread::_unschedule(State const s)
 Thread::Thread(unsigned const priority, char const * const label)
 :
 	Processor_client(0, priority),
-	Thread_cpu_support(this),
+	Thread_base(this),
 	_state(AWAITS_START),
 	_pd(0),
 	_utcb_phys(0),

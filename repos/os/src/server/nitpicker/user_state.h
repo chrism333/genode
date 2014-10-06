@@ -19,7 +19,6 @@
 #define _USER_STATE_H_
 
 #include "mode.h"
-#include "menubar.h"
 #include "view_stack.h"
 #include "global_keys.h"
 
@@ -33,63 +32,60 @@ class User_state : public Mode, public View_stack
 		Global_keys &_global_keys;
 
 		/*
-		 * Number of currently pressed keys.
-		 * This counter is used to determine if the user
-		 * is dragging an item.
+		 * Current pointer position
 		 */
-		unsigned _key_cnt;
+		Point _pointer_pos;
 
 		/*
-		 * Menubar to display trusted labeling information
-		 * according to the current Mitpicker mode and the
-		 * focused view.
+		 * Currently pointed-at session
 		 */
-		Menubar &_menubar;
-
-		/*
-		 * Current mouse cursor position
-		 */
-		Point _mouse_pos;
-
-		/*
-		 * Currently pointed-at view
-		 */
-		View const *_pointed_view;
+		Session *_pointed_session = nullptr;
 
 		/*
 		 * Session that receives the current stream of input events
 		 */
-		Session *_input_receiver;
+		Session *_input_receiver = nullptr;
 
 		/*
 		 * True while a global key sequence is processed
 		 */
-		bool _global_key_sequence;
+		bool _global_key_sequence = false;
+
+		void _update_all();
 
 	public:
 
 		/**
 		 * Constructor
 		 */
-		User_state(Global_keys &, Area view_stack_size, Menubar &);
+		User_state(Global_keys &, Area view_stack_size);
 
 		/**
 		 * Handle input event
 		 *
-		 * This function controls the Nitpicker mode and the
-		 * user state variables.
+		 * This function controls the Nitpicker mode and the user state
+		 * variables.
 		 */
-		void handle_event(Input::Event ev, Canvas_base &);
+		void handle_event(Input::Event ev);
 
 		/**
 		 * Accessors
 		 */
-		Point mouse_pos() { return _mouse_pos; }
+		Point pointer_pos() { return _pointer_pos; }
+
+		/**
+		 * (Re-)apply origin policy to all views
+		 */
+		void apply_origin_policy(View &pointer_origin)
+		{
+			View_stack::apply_origin_policy(pointer_origin);
+		}
 
 		/**
 		 * Mode interface
 		 */
-		void forget(Canvas_base &, View const &) override;
+		void forget(Session const &) override;
+		void focused_session(Session *) override;
 };
 
 #endif

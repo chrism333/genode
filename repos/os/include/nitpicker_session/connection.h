@@ -30,25 +30,26 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 
 		Framebuffer::Session_client _framebuffer;
 		Input::Session_client       _input;
+		Genode::size_t              _session_quota = 0;
 
 		/**
 		 * Create session and return typed session capability
 		 */
-		Session_capability _connect(bool stay_top)
+		Session_capability _connect(char const *label)
 		{
 			enum { ARGBUF_SIZE = 128 };
 			char argbuf[ARGBUF_SIZE];
 			argbuf[0] = 0;
 
+			if (Genode::strlen(label) > 0)
+				Genode::snprintf(argbuf, sizeof(argbuf), "label=\"%s\"", label);
+
 			/*
 			 * Declare ram-quota donation
 			 */
 			using Genode::Arg_string;
-			enum { SESSION_METADATA = 20*1024 };
+			enum { SESSION_METADATA = 36*1024 };
 			Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota", SESSION_METADATA);
-
-			if (stay_top)
-				Arg_string::set_arg(argbuf, sizeof(argbuf), "stay_top", "yes");
 
 			return session(argbuf);
 		}
@@ -58,10 +59,10 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 		/**
 		 * Constructor
 		 */
-		Connection(bool stay_top = false)
+		Connection(char const *label = "")
 		:
 			/* establish nitpicker session */
-			Genode::Connection<Session>(_connect(stay_top)),
+			Genode::Connection<Session>(_connect(label)),
 			Session_client(cap()),
 
 			/* request frame-buffer and input sub sessions */
@@ -75,10 +76,19 @@ class Nitpicker::Connection : public Genode::Connection<Session>,
 			char argbuf[ARGBUF_SIZE];
 			argbuf[0] = 0;
 
-			Genode::Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
-			                            ram_quota(mode, use_alpha));
+			Genode::size_t const needed = ram_quota(mode, use_alpha);
+			Genode::size_t const upgrade = needed > _session_quota
+			                             ? needed - _session_quota
+			                             : 0;
 
-			Genode::env()->parent()->upgrade(cap(), argbuf);
+			if (upgrade > 0) {
+				Genode::Arg_string::set_arg(argbuf, sizeof(argbuf), "ram_quota",
+				                            upgrade);
+
+				Genode::env()->parent()->upgrade(cap(), argbuf);
+				_session_quota += upgrade;
+			}
+
 			Session_client::buffer(mode, use_alpha);
 		}
 

@@ -1,12 +1,14 @@
 /*
  * \brief  USB driver main program
  * \author Norman Feske
- * \author Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+ * \author Sebastian Sumpf  <sebastian.sumpf@genode-labs.com>
+ * \author Christian Menard <christian.menard@ksyslabs.org>
  * \date   2012-01-29
  */
 
 /*
- * Copyright (C) 2012-2013 Genode Labs GmbH
+ * Copyright (C) 2012-2014 Genode Labs GmbH
+ * Copyright (C) 2014      Ksys Labs LLC
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -36,7 +38,7 @@ extern "C" void module_evdev_init();
 extern "C" void module_hid_init();
 extern "C" void module_hid_init_core();
 extern "C" void module_hid_generic_init();
-extern "C" void module_usb_stor_init();
+extern "C" void module_usb_storage_driver_init();
 extern "C" void module_ch_driver_init();
 extern "C" void module_mt_driver_init();
 
@@ -76,7 +78,7 @@ static void init(Services *services)
 
 	/* storage */
 	if (services->stor)
-		module_usb_stor_init();
+		module_usb_storage_driver_init();
 }
 
 
@@ -94,7 +96,7 @@ void start_usb_driver(Server::Entrypoint &ep)
 	Nic::init(ep);
 
 	Routine::add(0, 0, "Main", true);
-	Routine::current_use_first();
+	Routine::make_main_current();
 	init(&services);
 
 	Routine::main();

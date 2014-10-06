@@ -15,47 +15,29 @@
 #include "clip_guard.h"
 
 
-/***************
- ** Utilities **
- ***************/
-
-/**
- * Get last view with the stay_top attribute
- *
- * \param view  first view of the view stack
- */
-static View const *last_stay_top_view(View const *view)
-{
-	for (; view && view->view_stack_next() && view->view_stack_next()->stay_top(); )
-		view = view->view_stack_next();
-
-	return view;
-}
-
-
 /**************************
  ** View stack interface **
  **************************/
 
 template <typename VIEW>
-VIEW *View_stack::_next_view(VIEW *view) const
+VIEW *View_stack::_next_view(VIEW &view) const
 {
-	Session * const active_session = _mode.focused_view() ?
-	                                &_mode.focused_view()->session() : 0;
+	Session * const focused_session = _mode.focused_session();
 
-	View * const active_background = active_session ?
-	                                 active_session->background() : 0;
+	View * const active_background = focused_session ?
+	                                 focused_session->background() : 0;
 
-	for (;;) {
-		view = view ? view->view_stack_next() : 0;
+	for (VIEW *next_view = &view; ;) {
+
+		next_view = next_view->view_stack_next();
 
 		/* check if we hit the bottom of the view stack */
-		if (!view) return 0;
+		if (!next_view) return 0;
 
-		if (!view->background()) return view;
+		if (!next_view->background()) return next_view;
 
-		if (is_default_background(view) || view == active_background)
-			return view;
+		if (is_default_background(*next_view) || next_view == active_background)
+			return next_view;
 
 		/* view is a background view belonging to a non-focused session */
 	}
@@ -79,10 +61,9 @@ Rect View_stack::_outline(View const &view) const
 
 View const *View_stack::_target_stack_position(View const *neighbor, bool behind)
 {
-	/* find target position in view stack */
-	View const *cv = last_stay_top_view(_first_view());
+	View const *cv = _first_view();
 
-	for ( ; cv; cv = _next_view(cv)) {
+	for (; cv; cv = _next_view(*cv)) {
 
 		/* bring view to front? */
 		if (behind && !neighbor)
@@ -93,15 +74,15 @@ View const *View_stack::_target_stack_position(View const *neighbor, bool behind
 			break;
 
 		/* insert view in front of cv? */
-		if (!behind && (_next_view(cv) == neighbor))
+		if (!behind && (_next_view(*cv) == neighbor))
 			break;
 
 		/* insert view in front of the background? */
-		if (!behind && !neighbor && _next_view(cv)->background())
+		if (!behind && !neighbor && _next_view(*cv)->background())
 			break;
 	}
 
-	return cv ? cv : last_stay_top_view(_first_view());
+	return cv ? cv : _first_view();
 }
 
 
@@ -114,18 +95,18 @@ void View_stack::_optimize_label_rec(View const *cv, View const *lv, Rect rect, 
 	/* find next view that intersects with the rectangle or the target view */
 	Rect clipped;
 	while (cv && cv != lv && !(clipped = Rect::intersect(_outline(*cv), rect)).valid())
-		cv = _next_view(cv);
+		cv = _next_view(*cv);
 
 	/* reached end of view stack */
 	if (!cv) return;
 
-	if (cv != lv && _next_view(cv)) {
+	if (cv != lv && _next_view(*cv)) {
 
 		/* cut current view from rectangle and go into sub rectangles */
 		Rect r[4];
 		rect.cut(clipped, &r[0], &r[1], &r[2], &r[3]);
 		for (int i = 0; i < 4; i++)
-			_optimize_label_rec(_next_view(cv), lv, r[i], optimal);
+			_optimize_label_rec(_next_view(*cv), lv, r[i], optimal);
 
 		return;
 	}
@@ -150,16 +131,16 @@ void View_stack::_optimize_label_rec(View const *cv, View const *lv, Rect rect, 
 }
 
 
-void View_stack::_place_labels(Canvas_base &canvas, Rect rect)
+void View_stack::_place_labels(Rect rect)
 {
 	/* do not calculate label positions in flat mode */
 	if (_mode.flat()) return;
 
 	/* ignore mouse cursor */
-	View const *start = _next_view(_first_view());
-	View       *view  = _next_view(_first_view());
+	View const *start = _next_view(*_first_view());
+	View       *view  = _next_view(*_first_view());
 
-	for (; view && _next_view(view); view = _next_view(view)) {
+	for (; view && _next_view(*view); view = _next_view(*view)) {
 
 		Rect const view_rect = view->abs_geometry();
 		if (Rect::intersect(view_rect, rect).valid()) {
@@ -167,7 +148,7 @@ void View_stack::_place_labels(Canvas_base &canvas, Rect rect)
 			Rect old = view->label_rect(), best;
 
 			/* calculate best visible label position */
-			Rect rect = Rect::intersect(Rect(Point(), canvas.size()), view_rect);
+			Rect rect = Rect::intersect(Rect(Point(), _size), view_rect);
 			if (start) _optimize_label_rec(start, view, rect, &best);
 
 			/*
@@ -181,21 +162,20 @@ void View_stack::_place_labels(Canvas_base &canvas, Rect rect)
 			view->label_pos(Point(x, best.y1()));
 
 			/* refresh old and new label positions */
-			refresh_view(canvas, *view, view, old);
-			refresh_view(canvas, *view, view, view->label_rect());
+			refresh_view(*view, old);
+			refresh_view(*view, view->label_rect());
 		}
 	}
 }
 
 
-void View_stack::draw_rec(Canvas_base &canvas, View const *view, View const *dst_view,
-                          Session const *exclude, Rect rect) const
+void View_stack::draw_rec(Canvas_base &canvas, View const *view, Rect rect) const
 {
 	Rect clipped;
 
 	/* find next view that intersects with the current clipping rectangle */
 	for ( ; view && !(clipped = Rect::intersect(_outline(*view), rect)).valid(); )
-		view = _next_view(view);
+		view = _next_view(*view);
 
 	/* check if we hit the bottom of the view stack */
 	if (!view) return;
@@ -203,94 +183,123 @@ void View_stack::draw_rec(Canvas_base &canvas, View const *view, View const *dst
 	Rect top, left, right, bottom;
 	rect.cut(clipped, &top, &left, &right, &bottom);
 
-	View const *next = _next_view(view);
+	View const *next = _next_view(*view);
 
 	/* draw areas at the top/left of the current view */
-	if (next && top.valid())  draw_rec(canvas, next, dst_view, exclude, top);
-	if (next && left.valid()) draw_rec(canvas, next, dst_view, exclude, left);
+	if (next &&  top.valid()) draw_rec(canvas, next, top);
+	if (next && left.valid()) draw_rec(canvas, next, left);
 
 	/* draw current view */
-	if (!dst_view || (dst_view == view) || view->transparent()) {
+	view->dirty_rect().flush([&] (Rect const &dirty_rect) {
 
-		Clip_guard clip_guard(canvas, clipped);
+		Clip_guard clip_guard(canvas, Rect::intersect(clipped, dirty_rect));
 
 		/* draw background if view is transparent */
 		if (view->uses_alpha())
-			draw_rec(canvas, _next_view(view), 0, 0, clipped);
+			draw_rec(canvas, _next_view(*view), clipped);
 
 		view->frame(canvas, _mode);
-
-		if (!exclude || !view->belongs_to(*exclude))
-			view->draw(canvas, _mode);
-	}
+		view->draw(canvas, _mode);
+	});
 
 	/* draw areas at the bottom/right of the current view */
-	if (next &&  right.valid()) draw_rec(canvas, next, dst_view, exclude, right);
-	if (next && bottom.valid()) draw_rec(canvas, next, dst_view, exclude, bottom);
+	if (next &&  right.valid()) draw_rec(canvas, next, right);
+	if (next && bottom.valid()) draw_rec(canvas, next, bottom);
 }
 
 
-void View_stack::refresh_view(Canvas_base &canvas, View const &view,
-                              View const *dst_view, Rect rect)
+void View_stack::refresh_view(View &view, Rect const rect)
 {
-	/* clip argument agains view outline */
-	rect = Rect::intersect(rect, _outline(view));
+	/* rectangle constrained to view geometry */
+	Rect const view_rect = Rect::intersect(rect, _outline(view));
 
-	draw_rec(canvas, _first_view(), dst_view, 0, rect);
+	for (View *v = _first_view(); v; v = v->view_stack_next()) {
+
+		Rect const intersection = Rect::intersect(view_rect, _outline(*v));
+
+		if (intersection.valid())
+			_mark_view_as_dirty(*v, intersection);
+	}
+
+	view.for_each_child([&] (View &child) { refresh_view(child, rect); });
 }
 
 
-void View_stack::viewport(Canvas_base &canvas, View &view, Rect rect,
-                          Point buffer_off, bool do_redraw)
+void View_stack::refresh(Rect const rect)
 {
-	Rect const old_compound = _compound_outline(view);
+	for (View *v = _first_view(); v; v = v->view_stack_next()) {
 
+		Rect const intersection = Rect::intersect(rect, _outline(*v));
+
+		if (intersection.valid())
+			refresh_view(*v, intersection);
+	}
+}
+
+
+void View_stack::geometry(View &view, Rect const rect)
+{
+	Rect const old_outline = _outline(view);
+
+	/*
+	 * Refresh area covered by the original view geometry.
+	 *
+	 * We specify the whole geometry to also cover the refresh of child
+	 * views. The 'refresh_view' function takes care to constrain the
+	 * refresh to the actual view geometry.
+	 */
+	refresh_view(view, Rect(Point(), _size));
+
+	/* change geometry */
 	view.geometry(Rect(rect));
-	view.buffer_off(buffer_off);
 
-	Rect const new_compound = _compound_outline(view);
+	/* refresh new view geometry */
+	refresh_view(view, Rect(Point(), _size));
 
-	Rect const compound = Rect::compound(old_compound, new_compound);
+	Rect const compound = Rect::compound(old_outline, _outline(view));
 
 	/* update labels (except when moving the mouse cursor) */
 	if (&view != _first_view())
-		_place_labels(canvas, compound);
-
-	if (!_mode.flat())
-		do_redraw = true;
-
-	/* update area on screen */
-	draw_rec(canvas, _first_view(), 0, do_redraw ? 0 : &view.session(), compound);
+		_place_labels(compound);
 }
 
 
-void View_stack::stack(Canvas_base &canvas, View const &view,
-                       View const *neighbor, bool behind, bool do_redraw)
+void View_stack::buffer_offset(View &view, Point const buffer_off)
+{
+	view.buffer_off(buffer_off);
+
+	refresh_view(view, Rect(Point(), _size));
+}
+
+
+void View_stack::stack(View &view, View const *neighbor, bool behind)
 {
 	_views.remove(&view);
 	_views.insert(&view, _target_stack_position(neighbor, behind));
 
-	_place_labels(canvas, view.abs_geometry());
+	/* enforce stacking constrains dictated by domain layers */
+	sort_views_by_layer();
 
-	/* refresh affected screen area */
-	refresh_view(canvas, view, 0, _outline(view));
+	_place_labels(view.abs_geometry());
+
+	_mark_view_as_dirty(view, _outline(view));
 }
 
 
-void View_stack::title(Canvas_base &canvas, View &view, const char *title)
+void View_stack::title(View &view, const char *title)
 {
 	view.title(title);
-	_place_labels(canvas, view.abs_geometry());
-	refresh_view(canvas, view, 0, _outline(view));
+	_place_labels(view.abs_geometry());
+
+	_mark_view_as_dirty(view, _outline(view));
 }
 
 
 View *View_stack::find_view(Point p)
 {
-	/* skip mouse cursor */
-	View *view = _next_view(_first_view());
+	View *view = _first_view();
 
-	for ( ; view; view = _next_view(view))
+	for ( ; view; view = _next_view(*view))
 		if (view->input_response_at(p, _mode))
 			return view;
 
@@ -298,26 +307,52 @@ View *View_stack::find_view(Point p)
 }
 
 
-void View_stack::remove_view(Canvas_base &canvas, View const &view, bool redraw)
+void View_stack::remove_view(View const &view, bool redraw)
 {
+	view.for_each_const_child([&] (View const &child) { remove_view(child); });
+
 	/* remember geometry of view to remove */
 	Rect rect = _outline(view);
 
 	/* exclude view from view stack */
 	_views.remove(&view);
 
-	/*
-	 * Reset focused and pointed-at view if necessary
-	 *
-	 * Thus must be done after calling '_views.remove' because the new focused
-	 * pointer is determined by traversing the view stack. If the to-be-removed
-	 * view would still be there, we would re-assign the old pointed-to view as
-	 * the current one, resulting in a dangling pointer right after the view
-	 * gets destructed by the caller of 'removed_view'.
-	 */
-	_mode.forget(canvas, view);
+	refresh(rect);
+}
 
-	/* redraw area where the view was visible */
-	if (redraw)
-		draw_rec(canvas, _first_view(), 0, 0, rect);
+
+void View_stack::sort_views_by_layer()
+{
+	Genode::List<View_stack_elem> sorted;
+
+	/* last element of the sorted list */
+	View_stack_elem *at = nullptr;
+
+	while (_views.first()) {
+
+		/* find view with the lowest layer */
+		unsigned         lowest_layer = ~0UL;
+		View_stack_elem *lowest_view  = nullptr;
+		for (View_stack_elem *v = _views.first(); v; v = v->next()) {
+			unsigned const layer = static_cast<View *>(v)->session().layer();
+			if (layer < lowest_layer) {
+				lowest_layer = layer;
+				lowest_view  = v;
+			}
+		}
+
+		if (!lowest_view)
+			lowest_view = _views.first();
+
+		/*
+		 * Move lowest view from unsorted list to the end of the sorted
+		 * list.
+		 */
+		_views.remove(lowest_view);
+		sorted.insert(lowest_view, at);
+		at = lowest_view;
+	}
+
+	/* replace empty source list by newly sorted list */
+	_views = sorted;
 }

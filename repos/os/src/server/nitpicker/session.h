@@ -22,6 +22,7 @@
 /* local includes */
 #include "color.h"
 #include "canvas.h"
+#include "domain_registry.h"
 
 class View;
 class Session;
@@ -34,34 +35,42 @@ class Session : public Session_list::Element
 {
 	private:
 
-		Genode::Session_label const  _label;
-		Color                        _color;
-		Texture_base          const *_texture = { 0 };
-		bool                         _uses_alpha = { false };
-		View                        *_background = 0;
-		int                          _v_offset;
-		unsigned char         const *_input_mask = { 0 };
-		bool                  const  _stay_top;
+		Genode::Session_label  const  _label;
+		Domain_registry::Entry const *_domain;
+		Texture_base           const *_texture = { 0 };
+		bool                          _uses_alpha = { false };
+		View                         *_background = 0;
+		unsigned char          const *_input_mask = { 0 };
 
 	public:
 
 		/**
 		 * Constructor
 		 *
-		 * \param label     session label
-		 * \param v_offset  vertical screen offset of session
-		 * \param stay_top  true for views that stay always in front
+		 * \param label  session label
 		 */
-		Session(Genode::Session_label const &label, int v_offset, bool stay_top)
-		:
-			_label(label), _v_offset(v_offset), _stay_top(stay_top)
-		{ }
+		explicit Session(Genode::Session_label const &label) : _label(label) { }
 
 		virtual ~Session() { }
 
 		virtual void submit_input_event(Input::Event ev) = 0;
 
+		virtual void submit_sync() = 0;
+
 		Genode::Session_label const &label() const { return _label; }
+
+		bool xray_opaque() const { return _domain && _domain->xray_opaque(); }
+
+		bool xray_no() const { return _domain && _domain->xray_no(); }
+
+		bool origin_pointer() const { return _domain && _domain->origin_pointer(); }
+
+		unsigned layer() const { return _domain ? _domain->layer() : ~0UL; }
+
+		Domain_registry::Entry::Name domain_name() const
+		{
+			return _domain ? _domain->name() : Domain_registry::Entry::Name();
+		}
 
 		Texture_base const *texture() const { return _texture; }
 
@@ -85,13 +94,11 @@ class Session : public Session_list::Element
 		 */
 		void input_mask(unsigned char const *mask) { _input_mask = mask; }
 
-		Color color() const { return _color; }
+		Color color() const { return _domain ? _domain->color() : WHITE; }
 
 		View *background() const { return _background; }
 
 		void background(View *background) { _background = background; }
-
-		bool stay_top() const { return _stay_top; }
 
 		/**
 		 * Return true if session uses an alpha channel
@@ -99,9 +106,25 @@ class Session : public Session_list::Element
 		bool uses_alpha() const { return _texture && _uses_alpha; }
 
 		/**
-		 * Return vertical offset of session
+		 * Calculate session-local coordinate to physical screen position
+		 *
+		 * \param pos          coordinate in session-local coordinate system
+		 * \param screen_area  session-local screen size
 		 */
-		int v_offset() const { return _v_offset; }
+		Point phys_pos(Point pos, Area screen_area) const
+		{
+			return _domain ? _domain->phys_pos(pos, screen_area) : Point(0, 0);
+		}
+
+		/**
+		 * Return session-local screen area
+		 *
+		 * \param phys_pos  size of physical screen
+		 */
+		Area screen_area(Area phys_area) const
+		{
+			return _domain ? _domain->screen_area(phys_area) : Area(0, 0);
+		}
 
 		/**
 		 * Return input mask value at specified buffer position
@@ -118,22 +141,51 @@ class Session : public Session_list::Element
 			return _input_mask[p.y()*_texture->size().w() + p.x()];
 		}
 
+		bool has_same_domain(Session const *s) const
+		{
+			return s && (s->_domain == _domain);
+		}
+
+		bool has_valid_domain() const
+		{
+			return _domain;
+		}
+
+		void reset_domain()
+		{
+			_domain = nullptr;
+		}
+
 		/**
-		 * Set session color according to the list of configured policies
+		 * Set session domain according to the list of configured policies
 		 *
 		 * Select the policy that matches the label. If multiple policies
 		 * match, select the one with the largest number of characters.
 		 */
-		void apply_session_color()
+		void apply_session_policy(Domain_registry const &domain_registry)
 		{
-			/* use white by default */
-			_color = WHITE;
+			reset_domain();
 
 			try {
 				Genode::Session_policy policy(_label);
 
-				/* read color attribute */
-				policy.attribute("color").value(&_color);
+				/* read domain attribute */
+				if (!policy.has_attribute("domain")) {
+					PERR("policy for label \"%s\" lacks domain declaration",
+					     _label.string());
+					return;
+				}
+
+				typedef Domain_registry::Entry::Name Domain_name;
+				char buf[sizeof(Domain_name)];
+				buf[0] = 0;
+				try {
+					policy.attribute("domain").value(buf, sizeof(buf)); }
+				catch (...) { }
+
+				Domain_name name(buf);
+				_domain = domain_registry.lookup(name);
+
 			} catch (...) { }
 		}
 };

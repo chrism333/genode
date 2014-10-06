@@ -1,8 +1,9 @@
 /*
  * \brief  Input service and event handler
  * \author Christian Helmuth
- * \author Dirk Vogt <dvogt@os.inf.tu-dresden.de>
- * \author Sebastian Sumpf <sebastian.sumpf@genode-labs.com>
+ * \author Dirk Vogt        <dvogt@os.inf.tu-dresden.de>
+ * \author Sebastian Sumpf  <sebastian.sumpf@genode-labs.com>
+ * \author Christian Menard <christian.menard@ksyslabs.org>
  * \date   2009-04-20
  *
  * The original implementation was in the L4Env from the TUD:OS group
@@ -11,7 +12,8 @@
  */
 
 /*
- * Copyright (C) 2009-2013 Genode Labs GmbH
+ * Copyright (C) 2009-2014 Genode Labs GmbH
+ * Copyright (C) 2014      Ksys Labs LLC
  *
  * This file is part of the Genode OS framework, which is distributed
  * under the terms of the GNU General Public License version 2.
@@ -33,7 +35,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 	static unsigned long count = 0;
 #endif
 
-	static int last_ax = -1; // store the last absolute x value 
+	static int last_ax = -1; /* store the last absolute x value */
 	  
 	/* filter sound events */
 	if (test_bit(EV_SND, handle->dev->evbit)) return;
@@ -53,18 +55,19 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 
 	case EV_KEY:
 		arg_keycode = code;
+
+		/* map BTN_TOUCH events to BTN_LEFT */
+		if (code == BTN_TOUCH)
+			arg_keycode = BTN_LEFT;
+
 		switch (value) {
 
 		case 0:
 			arg_type = EVENT_TYPE_RELEASE;
-			if(code == 0x14a)           // XXX map BTN_TOUCH events to BTN_LEFT
-			  arg_keycode = 0x110;
 			break;
 
 		case 1:
 			arg_type = EVENT_TYPE_PRESS;
-			if(code == 0x14a)           // XXX
-			  arg_keycode = 0x110;
 			break;
 
 		default:
@@ -76,15 +79,25 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 	case EV_ABS:
 		switch (code) {
 
-		case ABS_X:             // Don't create an input event yet. Store the value and wait for the subsequent Y event.
-		case ABS_MT_POSITION_X: // XXX treat every MT Position event as a normal Mouse event
-			last_ax = (value * 1280) / 15360; // XXX hardcoded mapping for Toughpad FZ-M1
+		case ABS_X:
+		case ABS_MT_POSITION_X:
+
+			/*
+			 * Don't create an input event yet. Store the value and wait for the
+			 * subsequent Y event.
+			 */
+			last_ax = value;
 			return;
 
-		case ABS_Y:             // Create a unified input event with absolute positions on x and y axis.
-		case ABS_MT_POSITION_Y: // XXX treat every MT Position event as a normal Mouse event
+		case ABS_Y:
+		case ABS_MT_POSITION_Y:
+
+			/*
+			 * Create a unified input event with absolute positions on x and y
+			 * axis.
+			 */
 			arg_type = EVENT_TYPE_MOTION;
-			arg_ay = (value * 800) / 8640; // XXX hardcoded mapping for the Toughpad FZ-M1
+			arg_ay = value;
 			arg_ax = last_ax;
 			last_ax = -1;
 			if (arg_ax == -1) {
@@ -94,6 +107,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 			break;
 
 		case ABS_WHEEL:
+
 			/*
 			 * XXX I do not know, how to handle this correctly. At least, this
 			 * scheme works on Qemu.
@@ -144,8 +158,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 
 	if (handler)
 		handler(arg_type, arg_keycode, arg_ax, arg_ay, arg_rx, arg_ry);
-		printk("EVENT: t: %x c: %x ax: %d ay %d rx: %d ry %d\n",
-		       arg_type, arg_keycode, arg_ax, arg_ay, arg_rx, arg_ry);
+
 #if DEBUG_EVDEV
 	printk("event[%ld]. dev: %s, type: %d, code: %d, value: %d\n",
 	       count++, handle->dev->name, type, code, value);

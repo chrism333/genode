@@ -19,9 +19,7 @@
 #include <base/object_pool.h>
 #include <base/signal.h>
 #include <pager/capability.h>
-
-/* base-hw includes */
-#include <placement_new.h>
+#include <unmanaged_singleton.h>
 
 namespace Genode
 {
@@ -258,6 +256,13 @@ class Genode::Pager_object : public Object_pool<Pager_object>::Entry,
 		void thread_cap(Thread_capability const & c);
 
 		unsigned signal_context_id() const;
+
+
+		/*************
+		 ** Dummies **
+		 *************/
+
+		void unresolved_page_fault_occurred() { PDBG("not implemented"); }
 };
 
 class Genode::Pager_activation_base : public Thread_base,
