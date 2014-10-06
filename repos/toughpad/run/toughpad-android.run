@@ -111,8 +111,8 @@ append config {
 			</libc>
 		</config>
 		<route>
-			<service name="Framebuffer"><child name="android_fb" /></service>
-			<service name="Input"><child name="android_fb" /></service>
+			<service name="Framebuffer"><child name="fb_dv" /></service>
+			<service name="Input"><child name="usb_drv" /></service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
