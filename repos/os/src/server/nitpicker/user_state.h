@@ -65,10 +65,6 @@ class User_state : public Mode, public View_stack
 		 * True while a global key sequence is processed
 		 */
 		bool _global_key_sequence;
-		
-		Genode::List<View_stack_elem>  _switch_views;
-		
-		View* _switch_view;
 
 	public:
 

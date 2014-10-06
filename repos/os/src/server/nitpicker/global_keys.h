@@ -44,11 +44,6 @@ class Global_keys
 				XRAY,
 
 				/**
-				 * Toggle focus of view titles "Android" (if this view exists)
-				 */
-				ANDROID,
-
-				/**
 				 * Key should be propagated to client session
 				 */
 				CLIENT
@@ -62,13 +57,11 @@ class Global_keys
 			void undefine()         { _type = UNDEFINED; _session = 0; }
 			void operation_kill()   { _type = KILL;      _session = 0; }
 			void operation_xray()   { _type = XRAY;      _session = 0; }
-			void operation_android(Session *s) { _type = ANDROID;   _session = s; }
 			void client(Session *s) { _type = CLIENT;    _session = s; }
 
 			bool defined() const { return _type != UNDEFINED; }
 			bool xray()    const { return _type == XRAY; }
 			bool kill()    const { return _type == KILL; }
-			bool android() const { return _type == ANDROID; }
 		};
 
 		enum { NUM_POLICIES = Input::KEY_MAX + 1 };
@@ -91,16 +84,13 @@ class Global_keys
 		void apply_config(Session_list &session_list);
 
 		bool is_operation_key(Input::Keycode key) const {
-			return _valid(key) && (_policies[key].xray() || _policies[key].kill() || _policies[key].android()); }
+			return _valid(key) && (_policies[key].xray() || _policies[key].kill()); }
 
 		bool is_xray_key(Input::Keycode key) const {
 			return _valid(key) && _policies[key].xray(); }
 
 		bool is_kill_key(Input::Keycode key) const {
 			return _valid(key) && _policies[key].kill(); }
-
-		bool is_android_key(Input::Keycode key) const {
-			return _valid(key) && _policies[key].android(); }
 };
 
 #endif /* _GLOBAL_KEYS_H_ */

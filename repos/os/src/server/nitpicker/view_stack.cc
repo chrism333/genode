@@ -267,7 +267,6 @@ void View_stack::viewport(Canvas_base &canvas, View &view, Rect rect,
 void View_stack::stack(Canvas_base &canvas, View const &view,
                        View const *neighbor, bool behind, bool do_redraw)
 {
-	PINF("add new view");
 	_views.remove(&view);
 	_views.insert(&view, _target_stack_position(neighbor, behind));
 
@@ -280,7 +279,6 @@ void View_stack::stack(Canvas_base &canvas, View const &view,
 
 void View_stack::title(Canvas_base &canvas, View &view, const char *title)
 {
-	PINF("Set view title: %s", title);
 	view.title(title);
 	_place_labels(canvas, view.abs_geometry());
 	refresh_view(canvas, view, 0, _outline(view));

@@ -127,8 +127,6 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 		}
 	} update_all_guard(*this, canvas);
 
-
-	
 	/*
 	 * Handle start of a key sequence
 	 */
@@ -225,61 +223,6 @@ void User_state::handle_event(Input::Event ev, Canvas_base &canvas)
 
 			if (_global_keys.is_kill_key(keycode)) Mode::toggle_kill();
 			if (_global_keys.is_xray_key(keycode)) Mode::toggle_xray();
-
-			if(_global_keys. is_android_key(keycode)) {
-				static View* android_view;
-	  
-				Session* s = _global_keys.global_receiver(keycode);
-				
-				
-				bool found = false;
-				
-				View *view = _first_view(), *next_view = view->view_stack_next();
-				while (view) {
-					if (view->belongs_to(*s))
-					{
-						PINF("removed one view");
-						found = true;
-						remove_view(canvas, *view);
-						android_view = view;
-						
-						Input::Event unfocus_ev(Input::Event::FOCUS, 0, ax, ay, 0, 0);
-						android_view->session().submit_input_event(unfocus_ev);
-					
-						PINF("firstview: %p", _first_view());
-						
-						if(_first_view()) {
-							Input::Event focus_ev(Input::Event::FOCUS, 1, ax, ay, 0, 0);
-							_first_view()->session().submit_input_event(focus_ev);
-						}
-
-						focused_view(_first_view());
-
-						break;
-					}
-					view = next_view;
-					next_view = view ? view->view_stack_next() : 0;
-				}
-
-				if( !found) {
-					PINF("restore Session %s", s->label().string());
-
-					stack(canvas, *android_view);
-					
-					if (focused_view()) {
-						Input::Event unfocus_ev(Input::Event::FOCUS, 0, ax, ay, 0, 0);
-						focused_view()->session().submit_input_event(unfocus_ev);
-					}
-					
-					if (android_view) {
-						Input::Event focus_ev(Input::Event::FOCUS, 1, ax, ay, 0, 0);
-						pointed_view->session().submit_input_event(focus_ev);
-					}
-
-					focused_view(android_view);
-				}
-
-			}
 
 			update_all_guard.update_menubar = true;
 			update_all_guard.update_views   = true;

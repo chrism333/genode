@@ -21,7 +21,7 @@ class Session;
 
 class View_stack
 {
-	protected:
+	private:
 
 		Area                           _size;
 		Mode                          &_mode;

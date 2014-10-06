@@ -30,8 +30,6 @@ Global_keys::Policy *Global_keys::_lookup_policy(char const *key_name)
 
 void Global_keys::apply_config(Session_list &session_list)
 {
-	PINF("apply_config");
-  
 	for (unsigned i = 0; i < NUM_POLICIES; i++)
 		_policies[i].undefine();
 
@@ -67,17 +65,6 @@ void Global_keys::apply_config(Session_list &session_list)
 					continue;
 				} else if (operation.has_value("xray")) {
 					policy->operation_xray();
-					continue;
-				} else if (operation.has_value("android")) {
-					if( node.has_attribute("label")) {
-						for (Session *s = session_list.first(); s; s = s->next()) {
-							if (node.attribute("label").has_value(s->label().string()))
-								policy->operation_android(s);
-						}
-					}
-					else {
-						PWRN("The Android framebuffer is not specified by a label attribute");
-					}
 					continue;
 				} else {
 					char buf[32]; buf[0] = 0;
