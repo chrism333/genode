@@ -20,11 +20,19 @@ append build_components {
 	drivers/pci
 	drivers/framebuffer
 	drivers/usb
+	server/fb_switcher
+}
+
+# nitpicker components
+append build_components {
+	server/nitpicker 
+	app/pointer 
+	app/status_bar
+	server/report_rom
 }
 
 # application components
 append build_components {
-	server/nitpicker 
 	server/liquid_framebuffer  
 	server/nitlog
 	test/nitpicker 
@@ -126,24 +134,13 @@ append config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
-}
-
-# Nitpicker and application configuration
-
-append config {
-	<start name="nitpicker">
+	<start name="fb_switcher">
 		<affinity xpos="3" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Nitpicker"/></provides>
-		<config>
-			<global-keys>
-				<key name="KEY_SCROLLLOCK" operation="xray" />
-				<key name="KEY_SYSRQ"      operation="kill" />
-				<key name="KEY_PRINT"      operation="kill" />
-				<key name="KEY_F11"        operation="kill" />
-				<key name="KEY_F12"        operation="xray" />
-			</global-keys>
-		</config>
+		<provides>
+			<service name="Input"/>
+			<service name="Framebuffer"/>
+		</provides>
 		<route>
 			<service name="LOG"><child name="fs_log" /></service>
 			<service name="Framebuffer"><child name="fb_drv" /></service>
@@ -151,6 +148,74 @@ append config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
+}
+
+# Nitpicker configuration
+
+append config {
+	<start name="report_rom">
+		<affinity xpos="3" ypos="0" width="1" height="1" />
+		<resource name="RAM" quantum="1M"/>
+		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<config>
+			<rom>
+				<policy label="status_bar -> focus" report="nitpicker -> focus"/>
+			</rom>
+		</config>
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="nitpicker">
+		<affinity xpos="3" ypos="0" width="1" height="1" />
+		<resource name="RAM" quantum="1M"/>
+		<provides><service name="Nitpicker"/></provides>
+		<config>
+			<report focus="yes" />
+			<domain name="pointer" layer="1" xray="no" origin="pointer" />
+			<domain name="panel"   layer="2" xray="no" />
+			<domain name=""        layer="3" ypos="18" height="-18" />
+
+			<policy label="pointer"    domain="pointer"/>
+			<policy label="status_bar" domain="panel"/>
+			<policy label=""           domain=""/>
+
+			<global-key name="KEY_SCROLLLOCK" operation="xray" />
+			<global-key name="KEY_SYSRQ"      operation="kill" />
+			<global-key name="KEY_PRINT"      operation="kill" />
+			<global-key name="KEY_F11"        operation="kill" />
+			<global-key name="KEY_F12"        operation="xray" />
+		</config>
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<service name="Framebuffer"><child name="fb_switcher" /></service>
+			<service name="Input"><child name="fb_switcher" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="pointer">
+		<affinity xpos="3" ypos="0" width="1" height="1" />
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="status_bar">
+		<affinity xpos="3" ypos="0" width="1" height="1" />
+		<resource name="RAM" quantum="1M"/>
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<service name="ROM"> <child name="report_rom"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+}
+
+# Application configuration
+
+append config {
 	<start name="launchpad">
 		<affinity xpos="3" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="64M" />
@@ -160,7 +225,6 @@ append config {
 			<any-service><parent/><any-child/></any-service>
 		</route>
 	</start>
-
 }
 
 # Android configuration
@@ -172,25 +236,10 @@ append config {
 		<provides>
 			<service name="Rtc"/>
 		</provides>
-	</start>
-	<start name="android_fb">
-		<affinity xpos="0" ypos="0" width="1" height="1" />
-		<binary name="liquid_fb"/>
-		<config
-			xpos="0"
-			ypos="10"
-			width="1280"
-			height="790"
-			animate="off"
-			title="Android"
-			resize_handle="off"
-			decoration="off"
-		/>
-		<resource name="RAM" quantum="4M" />
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 	</start>
 	<start name="virtualbox">
 		<affinity xpos="0" ypos="0" width="1" height="1" />
@@ -205,8 +254,9 @@ append config {
 			</libc>
 		</config>
 		<route>
-			<service name="Framebuffer"><child name="android_fb" /></service>
-			<service name="Input"><child name="android_fb" /></service>
+			<service name="LOG"><child name="fs_log" /></service>
+			<service name="Framebuffer"><child name="fb_switcher" /></service>
+			<service name="Input"><child name="fb_switcher" /></service>
 			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
@@ -253,10 +303,16 @@ append config {
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="LOG"/></provides>
 		<config>
-			<policy label="fb_drv" file="/fb.log" />
-			<policy label="usb_drv" file="/usb.log" />
-			<policy label="nitpicker" file="/nitpicker.log" />
-			<policy label="launchpad" file="/launchpad.log" />
+			<policy label="fb_drv"      file="/demo.log" />
+			<policy label="usb_drv"     file="/demo.log" />
+			<policy label="nitpicker"   file="/demo.log" />
+			<policy label="launchpad"   file="/demo.log" />
+			<policy label="report_rom"  file="/demo.log" />
+			<policy label="pointer"     file="/demo.log" />
+			<policy label="status_bar"  file="/demo.log" />
+			<policy label="fb_switcher" file="/demo.log" />
+			<policy label="rtc_drv"     file="/demo.log" />
+			<policy label="virtualbox"  file="/vbox.log" />
 			<libc stdout="/dev/log">
 			<vfs>
 				<dir name="dev"> <log/> </dir>
@@ -306,11 +362,19 @@ append boot_modules {
 	acpi_drv pci_drv pci_device_pd 
 	fb_drv
 	usb_drv
+	fb_switcher
+}
+
+# nitpicker modules
+append boot_modules {
+	nitpicker 
+	pointer
+	status_bar
+	report_rom
 }
 
 # application modules 
 append boot_modules {
-	nitpicker 
 	liquid_fb  
 	scout
 	testnit 

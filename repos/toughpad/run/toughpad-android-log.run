@@ -1,5 +1,5 @@
 #
-# \brief  Test for Toughpad development
+# \brief Start Android in VMBox directly using the HW framebuffer
 # \author Christian Menard
 # \date   2014-07-08
 #
@@ -19,21 +19,11 @@ append build_components {
 	drivers/usb
 }
 
-# nitpicker components
-append build_components {
-	server/nitpicker 
-	app/pointer 
-	app/status_bar
-	server/report_rom
-}
-
-# application components
-append build_components {
+# android components 
+append build_components { 
+	drivers/rtc
+	virtualbox
 	server/liquid_framebuffer  
-	server/nitlog
-	test/nitpicker 
-	app/launchpad
-	app/scout
 }
 
 # file system components
@@ -46,6 +36,7 @@ append build_components {
 # log session components
 append build_components {
 	server/fs_log
+	server/log_terminal
 }
 
 build $build_components
@@ -59,6 +50,7 @@ create_boot_directory
 
 set config {
 <config>
+	<affinity-space width="4" height="1" />
 	<parent-provides>
 		<service name="ROM"/>
 		<service name="RAM"/>
@@ -76,6 +68,7 @@ set config {
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
 	<start name="timer">
+		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
@@ -85,6 +78,7 @@ set config {
 
 append config {
 	<start name="acpi">
+		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="32M"/>
 		<binary name="acpi_drv"/>
 		<provides>
@@ -97,6 +91,7 @@ append config {
 		</route>
 	</start>
 	<start name="fb_drv">
+		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
  		<config width="1280"
@@ -110,6 +105,7 @@ append config {
 		</route>
 	</start>
 	<start name="usb_drv">
+		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
 		<config ehci="yes" uhci="yes" xhci="yes"> <hid/> </config>
@@ -120,84 +116,51 @@ append config {
 	</start>
 }
 
-# Nitpicker configuration
+# Android configuration
 
 append config {
-	<start name="report_rom">
+	<start name="rtc_drv">
+		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="1M"/>
-		<provides> <service name="Report"/> <service name="ROM"/> </provides>
+		<provides>
+			<service name="Rtc"/>
+		</provides>
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+	</start>
+	<start name="virtualbox">
+		<affinity xpos="0" ypos="0" width="1" height="1" />
+		<resource name="RAM" quantum="1G"/>
 		<config>
-			<rom>
-				<policy label="status_bar -> focus" report="nitpicker -> focus"/>
-			</rom>
+			<image type="iso" file="android.iso" />
+			<libc stdout="/dev/log" stderr="/dev/log">
+				<vfs>
+					<dir name="dev"> <log/> </dir>
+					<rom name="android.iso" />
+				</vfs>
+			</libc>
 		</config>
 		<route>
 			<service name="LOG"><child name="fs_log" /></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-	<start name="nitpicker">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Nitpicker"/></provides>
-		<config>
-			<report focus="yes" />
-			<domain name="pointer" layer="1" xray="no" origin="pointer" />
-			<domain name="panel"   layer="2" xray="no" />
-			<domain name=""        layer="3" ypos="18" height="-18" />
-
-			<policy label="pointer"    domain="pointer"/>
-			<policy label="status_bar" domain="panel"/>
-			<policy label=""           domain=""/>
-
-			<global-key name="KEY_SCROLLLOCK" operation="xray" />
-			<global-key name="KEY_SYSRQ"      operation="kill" />
-			<global-key name="KEY_PRINT"      operation="kill" />
-			<global-key name="KEY_F11"        operation="kill" />
-			<global-key name="KEY_F12"        operation="xray" />
-		</config>
-		<route>
-			<service name="LOG"><child name="fs_log" /></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-	<start name="pointer">
-		<resource name="RAM" quantum="1M"/>
-		<route>
-			<service name="LOG"><child name="fs_log" /></service>
-			<any-service><parent/><any-child/></any-service>
-		</route>
-	</start>
-	<start name="status_bar">
-		<resource name="RAM" quantum="1M"/>
-		<route>
-			<service name="ROM"> <child name="report_rom"/> </service>
-			<service name="LOG"><child name="fs_log" /></service>
-			<any-service> <parent/> <any-child/> </any-service>
+			<service name="Framebuffer"><child name="android_fb" /></service>
+			<service name="Input"><child name="android_fb" /></service>
+			<any-service> <parent/> <any-child /> </any-service>
 		</route>
 	</start>
 }
 
-# Application configuration
-
-append config {
-	<start name="launchpad">
-		<resource name="RAM" quantum="64M" />
-		<configfile name="launchpad.config" />
-		<route>
-			<service name="LOG"><child name="fs_log" /></service>
-			<any-service> <parent/> <any-child/> </any-service>
-		</route>
-	</start>
-}
 # file system configuration
 
 append config {
 	<start name="ahci">
+		<affinity xpos="3" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="Block"/></provides>
-		<config verbose="yes" />
     </start>
 	<start name="part_blk">
+		<affinity xpos="3" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
@@ -209,6 +172,7 @@ append config {
 		</config>
 	</start>
 	<start name="rump_fs">
+		<affinity xpos="3" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="100M" />
 		<provides><service name="File_system"/></provides>
 		<route>
@@ -223,16 +187,14 @@ append config {
 
 append config {
 	<start name="fs_log">
+		<affinity xpos="3" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="LOG"/></provides>
 		<config>
-			<policy label="fb_drv"     file="/demo.log" />
-			<policy label="usb_drv"    file="/demo.log" />
-			<policy label="nitpicker"  file="/demo.log" />
-			<policy label="launchpad"  file="/demo.log" />
-			<policy label="report_rom" file="/demo.log" />
-			<policy label="pointer"    file="/demo.log" />
-			<policy label="status_bar" file="/demo.log" />
+			<policy label="fb_drv" file="/fb.log" />
+			<policy label="usb_drv" file="/usb.log" />
+			<policy label="rtc_drv" file="/rtc.log" />
+			<policy label="virtualbox" file="/virtualbox.log" />
 			<libc stdout="/dev/log">
 			<vfs>
 				<dir name="dev"> <log/> </dir>
@@ -246,7 +208,6 @@ append config {
 		</route>
 	</start>
 }
-
 
 append config {
 </config>
@@ -285,21 +246,15 @@ append boot_modules {
 	usb_drv
 }
 
-# nitpicker modules
+# android modules 
 append boot_modules {
-	nitpicker 
-	pointer
-	status_bar
-	report_rom
-}
-
-# application modules 
-append boot_modules {
-	liquid_fb  
-	scout
-	testnit 
-	nitlog
-	launchpad launchpad.config 
+	virtualbox android.iso
+	rtc_drv
+	liquid_fb
+	ld.lib.so libc.lib.so 
+	libm.lib.so pthread.lib.so
+	libc_lock_pipe.lib.so libc_terminal.lib.so
+	libiconv.lib.so
 }
 
 # file system modules 
@@ -311,7 +266,8 @@ append boot_modules {
 }
 
 # log session modules
-append boot_modules { fs_log }
+append boot_modules { fs_log log_terminal }
+
 
 build_boot_image $boot_modules
 
@@ -322,5 +278,5 @@ build_boot_image $boot_modules
 set builddir [pwd]
 set tooldir [file dirname $argv0]
 
-exec $tooldir/create_grub2_entry_nova.perl $builddir toughpad-demo-log
-exec $tooldir/run_on_toughpad.sh $builddir toughpad-demo-log
+exec $tooldir/create_grub2_entry_nova.perl $builddir toughpad-android-log
+exec $tooldir/run_on_toughpad.sh $builddir toughpad-android-log
