@@ -86,7 +86,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 			 * Don't create an input event yet. Store the value and wait for the
 			 * subsequent Y event.
 			 */
-			last_ax = value;
+			last_ax = (value * 1280) / 15360; // XXX hardcoded mapping for Toughpad FZ-M1
 			return;
 
 		case ABS_Y:
@@ -97,7 +97,7 @@ void genode_evdev_event(struct input_handle *handle, unsigned int type,
 			 * axis.
 			 */
 			arg_type = EVENT_TYPE_MOTION;
-			arg_ay = value;
+			arg_ay = (value * 800) / 8640; // XXX hardcoded mapping for the Toughpad FZ-M1
 			arg_ax = last_ax;
 			last_ax = -1;
 			if (arg_ax == -1) {
