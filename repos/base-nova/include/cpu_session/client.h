@@ -89,7 +89,7 @@ namespace Genode {
 			return call<Rpc_trace_policy>(thread); }
 		
 		void print_thread_info() {
-			return call<Rpc_print_thread_info>(); }
+			call<Rpc_print_thread_info>(); }
 
 		private:
 
