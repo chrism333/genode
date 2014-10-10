@@ -9,7 +9,7 @@
 #
 
 # base components
-set build_components { core init drivers/timer }
+set build_components { core init drivers/timer server/cpu_monitor }
 
 # basic driver components
 append build_components {
@@ -56,6 +56,9 @@ set config {
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="cpu_monitor">
+		<resource name="RAM" quantum="1M"/>
 	</start>
 }
 
@@ -128,7 +131,7 @@ install_config $config
 #
 
 # generic modules
-set boot_modules { core init timer }
+set boot_modules { core init timer cpu_monitor }
 
 # basic driver modules
 append boot_modules { 
