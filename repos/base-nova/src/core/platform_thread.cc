@@ -50,6 +50,7 @@ Affinity::Location Platform_thread::affinity() { return _location; }
 
 int Platform_thread::start(void *ip, void *sp)
 {
+	PDBG("%s, base: 0x%lx, features: 0x%x", _name, _id_base, _features);
 	using namespace Nova;
 
 	if (!_pager) {
@@ -186,6 +187,14 @@ int Platform_thread::start(void *ip, void *sp)
 
 Native_capability Platform_thread::pause()
 {
+	PDBG("%s, base: 0x%lx, features: 0x%x", _name, _id_base, _features);
+	using namespace Nova;
+  
+	unsigned long time = 0;
+	int res = sc_ctrl(_sel_sc(), (Sem_op) 0, time);
+	PINF("Pause -> time: %ld (status %x)", time, res);
+	
+  
 	if (!_pager) return Native_capability();
 
 	Native_capability notify_sm = _pager->notify_sm();
@@ -206,6 +215,7 @@ Native_capability Platform_thread::pause()
 
 void Platform_thread::resume()
 {
+	PDBG("%s, base: 0x%lx, features: 0x%x", _name, _id_base, _features);
 	using namespace Nova;
 
 	if (!is_worker()) {
@@ -223,6 +233,7 @@ void Platform_thread::resume()
 
 Thread_state Platform_thread::state()
 {
+	PDBG("%s, base: 0x%lx, features: 0x%x", _name, _id_base, _features);
 	if (!_pager) throw Cpu_session::State_access_failed();
 
 	Thread_state s;
@@ -241,6 +252,7 @@ Thread_state Platform_thread::state()
 
 void Platform_thread::state(Thread_state s)
 {
+	PDBG("%s, base: 0x%lx, features: 0x%x", _name, _id_base, _features);
 	/* you can do it only once */
 	if (_sel_exc_base != Native_thread::INVALID_INDEX)
 		throw Cpu_session::State_access_failed();
@@ -266,6 +278,7 @@ void Platform_thread::state(Thread_state s)
 
 void Platform_thread::cancel_blocking()
 {
+	PDBG("%s, base: 0x%lx, features: 0x%x", _name, _id_base, _features);
 	if (!_pager) return;
 
 	_pager->client_cancel_blocking();
@@ -274,6 +287,7 @@ void Platform_thread::cancel_blocking()
 
 void Platform_thread::single_step(bool on)
 {
+	PDBG("%s, base: 0x%lx, features: 0x%x", _name, _id_base, _features);
 	if (!_pager) return;
 
 	_pager->single_step(on);
