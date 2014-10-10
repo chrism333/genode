@@ -87,6 +87,9 @@ namespace Genode {
 
 		Dataspace_capability trace_policy(Thread_capability thread) {
 			return call<Rpc_trace_policy>(thread); }
+		
+		void print_thread_info() {
+			return call<Rpc_print_thread_info>(); }
 
 		private:
 

@@ -255,6 +255,8 @@ namespace Genode {
 			virtual Dataspace_capability trace_policy(Thread_capability thread) = 0;
 
 
+			virtual void print_thread_info() = 0;
+			
 			/*********************
 			 ** RPC declaration **
 			 *********************/
@@ -284,6 +286,7 @@ namespace Genode {
 			GENODE_RPC(Rpc_trace_control_index, unsigned, trace_control_index, Thread_capability);
 			GENODE_RPC(Rpc_trace_buffer, Dataspace_capability, trace_buffer, Thread_capability);
 			GENODE_RPC(Rpc_trace_policy, Dataspace_capability, trace_policy, Thread_capability);
+			GENODE_RPC(Rpc_print_thread_info, void, print_thread_info);
 
 			/*
 			 * 'GENODE_RPC_INTERFACE' declaration done manually
@@ -311,8 +314,9 @@ namespace Genode {
 			        Meta::Type_tuple<Rpc_trace_control_index,
 			        Meta::Type_tuple<Rpc_trace_buffer,
 			        Meta::Type_tuple<Rpc_trace_policy,
+					Meta::Type_tuple<Rpc_print_thread_info,
 			                         Meta::Empty>
-			        > > > > > > > > > > > > > > > > > Rpc_functions;
+			        > > > > > > > > > > > > > > > > > > Rpc_functions;
 	};
 }
 
