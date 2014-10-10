@@ -151,7 +151,7 @@ namespace Genode {
 			/**
 			 * Get thread name
 			 */
-			const char *name() const { return "noname"; }
+			const char *name() const { return _name; }
 
 			/**
 			 * Associate thread with protection domain
