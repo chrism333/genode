@@ -165,7 +165,6 @@ append config {
 	<start name="status_bar">
 		<resource name="RAM" quantum="1M"/>
 		<route>
-			<service name="LOG"><child name="nitlog" /></service>
 			<service name="ROM"> <child name="report_rom"/> </service>
 			<any-service> <parent/> <any-child/> </any-service>
 		</route>
@@ -178,12 +177,6 @@ append config {
 	<start name="launchpad">
 		<resource name="RAM" quantum="64M" />
 		<configfile name="launchpad.config" />
-	</start>
-	<start name="nitlog">
-		<resource name="RAM" quantum="4M" />
-		<provides>
-			<service name="LOG"/>
-		</provides>
 	</start>
 }
 
@@ -208,7 +201,6 @@ append config {
 			</libc>
 		</config>
 		<route>
-			<service name="LOG"><child name="nitlog" /></service>
 			<service name="Framebuffer"><child name="fb_switcher" /></service>
 			<service name="Input"><child name="fb_switcher" /></service>
 			<any-service> <parent/> <any-child /> </any-service>

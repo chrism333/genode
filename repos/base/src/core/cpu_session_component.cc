@@ -61,7 +61,9 @@ Thread_capability Cpu_session_component::create_thread(Name  const &name,
 	}
 
 	Lock::Guard thread_list_lock_guard(_thread_list_lock);
+	PINF("insert new thread");
 	_thread_list.insert(thread);
+	PINF("aftter insert: first: %lx", _thread_list.first());
 
 	_trace_sources.insert(thread->trace_source());
 
@@ -279,6 +281,25 @@ static size_t remaining_session_ram_quota(char const *args)
 	     - Trace::Control_area::SIZE;
 }
 
+
+void Cpu_session_component::print_thread_info()
+{
+	Cpu_thread_component* t = _thread_list.first();
+	
+	PINF("-------------------------------------------------------------------");
+	PINF("first: %lx", _thread_list.first());
+	
+	
+	while(t != nullptr)
+	{
+	    const char* name = t->platform_thread()->name();
+		if( name != nullptr)
+			PINF("%s", name);
+		else
+			PINF("noname");
+		t = t->next();
+	}
+}
 
 Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *thread_ep,
                                              Pager_entrypoint       *pager_ep,

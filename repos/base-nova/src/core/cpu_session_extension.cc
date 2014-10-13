@@ -45,9 +45,3 @@ Cpu_session_component::single_step(Thread_capability thread_cap, bool enable)
 
 	thread->platform_thread()->single_step(enable);
 }
-
-
-void Cpu_session_component::print_thread_info()
-{
-	PINF("You are amazing!");
-}

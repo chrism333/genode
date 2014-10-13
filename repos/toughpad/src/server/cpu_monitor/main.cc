@@ -13,7 +13,7 @@ int main(int, char **)
 {
 	using namespace Genode;
 
-	PDBG("--- cpu_profiler service started ---");
+	PDBG("--- cpu_monitor service started ---");
 
 	Cap_connection          cap;
 	Cpu_connection          cpu;
