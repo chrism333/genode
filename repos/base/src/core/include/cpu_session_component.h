@@ -194,6 +194,7 @@ namespace Genode {
 			unsigned trace_control_index(Thread_capability);
 			Dataspace_capability trace_buffer(Thread_capability);
 			Dataspace_capability trace_policy(Thread_capability);
+			void print_thread_info();
 	};
 }
 

@@ -272,6 +272,12 @@ Dataspace_capability Cpu_session_component::trace_policy(Thread_capability threa
 }
 
 
+void Cpu_session_component::print_thread_info()
+{
+	PINF("You are a genius");
+}
+
+
 static size_t remaining_session_ram_quota(char const *args)
 {
 	/*
