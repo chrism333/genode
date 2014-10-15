@@ -18,7 +18,7 @@ int main(int, char **)
 	while (1) { 
 		cpu.print_thread_info();
 		
-		timer.msleep(500);
+		timer.msleep(1000);
 	}
 		
 

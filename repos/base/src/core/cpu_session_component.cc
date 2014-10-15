@@ -277,13 +277,27 @@ void Cpu_session_component::print_thread_info()
 	Cpu_thread_component* current = _global_thread_list.first();
 	
 	int i = 0;
+	static unsigned long mem[100] = {0};
+	unsigned long total = 0;
+	unsigned long percent = 0;
 	
+	PINF("CPU: ID\tpercent\texecution time\tname");
 	while(current != nullptr)
 	{
-		PINF("%d \t %s (%ld)", i, current->platform_thread()->name(), current->platform_thread()->execution_time());
+		unsigned long time = current->platform_thread()->execution_time();
+		
+		total += time - mem[i];
+		percent = ((time - mem[i]) * 100) / 1000000; 
+		
+		mem[i] = time;
+		
+		PINF("CPU: %d\t%ld\t%ld\t%s", i,percent, time, current->platform_thread()->name());
+		
 		current = current->next();
 		i++;
 	}
+	
+	PINF("CPU: total: %ld, percent: %ld", total, total / 10000);
 }
 
 

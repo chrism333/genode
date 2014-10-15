@@ -319,8 +319,8 @@ unsigned long Platform_thread::execution_time()
 	mword_t time = 0;
 	uint8_t res = sc_ctrl(_sel_sc(), (Sem_op)0, time);
 	
-	if(res)
-		PERR("an error occured while performing sc_ctrl (0x%x)", res);
+// 	if(res)
+// 		PERR("an error occured while performing sc_ctrl (0x%x)", res);
 	
 	return time;
 }
