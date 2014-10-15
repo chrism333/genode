@@ -16,6 +16,7 @@
 
 /* Genode includes */
 #include <root/component.h>
+#include <util/list.h>
 
 /* Core includes */
 #include <cpu_session_component.h>
@@ -26,10 +27,11 @@ namespace Genode {
 	{
 		private:
 
-			Rpc_entrypoint         *_thread_ep;
-			Pager_entrypoint       *_pager_ep;
-			Allocator              *_md_alloc;
-			Trace::Source_registry &_trace_sources;
+			Rpc_entrypoint             *_thread_ep;
+			Pager_entrypoint           *_pager_ep;
+			Allocator                  *_md_alloc;
+			Trace::Source_registry     &_trace_sources;
+			List<Cpu_thread_component>  _global_thread_list;
 
 		protected:
 
