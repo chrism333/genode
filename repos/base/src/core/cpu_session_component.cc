@@ -285,7 +285,8 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *thread_ep,
                                              Allocator              *md_alloc,
                                              Trace::Source_registry &trace_sources,
                                              char             const *args,
-                                             Affinity         const &affinity)
+                                             Affinity         const &affinity,
+                                             List<Cpu_thread_component> &global_thread_list)
 :
 	_thread_ep(thread_ep), _pager_ep(pager_ep),
 	_md_alloc(md_alloc, remaining_session_ram_quota(args)),
@@ -294,7 +295,8 @@ Cpu_session_component::Cpu_session_component(Rpc_entrypoint         *thread_ep,
 	/* map affinity to a location within the physical affinity space */
 	_location(affinity.scale_to(platform()->affinity_space())),
 
-	_trace_sources(trace_sources)
+	_trace_sources(trace_sources),
+	_global_thread_list(global_thread_list)
 {
 	/* remember session label */
 	char buf[Session_label::size()];

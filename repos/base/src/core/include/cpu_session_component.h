@@ -128,6 +128,8 @@ namespace Genode {
 			                                                  session */
 			Trace::Source_registry    &_trace_sources;
 			Trace::Control_area        _trace_control_area;
+			
+			List<Cpu_thread_component> &_global_thread_list;
 
 			/**
 			 * Exception handler that will be invoked unless overridden by a
@@ -154,7 +156,8 @@ namespace Genode {
 			                      Pager_entrypoint       *pager_ep,
 			                      Allocator              *md_alloc,
 			                      Trace::Source_registry &trace_sources,
-			                      const char *args, Affinity const &affinity);
+			                      const char *args, Affinity const &affinity,
+			                      List<Cpu_thread_component> &_global_thread_list);
 
 			/**
 			 * Destructor

@@ -46,7 +46,7 @@ namespace Genode {
 
 				return new (md_alloc())
 					Cpu_session_component(_thread_ep, _pager_ep, _md_alloc,
-					                      _trace_sources, args, affinity); }
+					                      _trace_sources, args, affinity, _global_thread_list); }
 
 			void _upgrade_session(Cpu_session_component *cpu, const char *args)
 			{
