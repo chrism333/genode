@@ -17,6 +17,7 @@
 /* Genode includes */
 #include <root/component.h>
 #include <util/list.h>
+#include <base/lock.h>
 
 /* Core includes */
 #include <cpu_session_component.h>
@@ -32,6 +33,7 @@ namespace Genode {
 			Allocator                  *_md_alloc;
 			Trace::Source_registry     &_trace_sources;
 			List<Cpu_thread_component>  _global_thread_list;
+			Lock                        _global_thread_list_lock;
 
 		protected:
 
@@ -46,7 +48,8 @@ namespace Genode {
 
 				return new (md_alloc())
 					Cpu_session_component(_thread_ep, _pager_ep, _md_alloc,
-					                      _trace_sources, args, affinity, _global_thread_list); }
+					                      _trace_sources, args, affinity, 
+					                      _global_thread_list, _global_thread_list_lock); }
 
 			void _upgrade_session(Cpu_session_component *cpu, const char *args)
 			{

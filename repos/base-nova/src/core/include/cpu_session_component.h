@@ -138,6 +138,7 @@ namespace Genode {
 			Trace::Control_area        _trace_control_area;
 
 			List<Cpu_thread_component> &_global_thread_list;
+			Lock                       &_global_thread_list_lock;
 
 			/**
 			 * Exception handler that will be invoked unless overridden by a
@@ -165,7 +166,8 @@ namespace Genode {
 			                      Allocator              *md_alloc,
 			                      Trace::Source_registry &trace_sources,
 			                      const char *args, Affinity const &affinity,
-			                      List<Cpu_thread_component> &_global_thread_list);
+			                      List<Cpu_thread_component> &_global_thread_list,
+			                      Lock                       &_global_thread_list_lock);
 
 			/**
 			 * Destructor
