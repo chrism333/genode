@@ -311,3 +311,16 @@ Platform_thread::~Platform_thread()
 	revoke(Obj_crd(_id_base, 1));
 	cap_map()->remove(_id_base, 1, false);
 }
+
+unsigned long Platform_thread::execution_time()
+{
+	using namespace Nova;
+  
+	mword_t time = 0;
+	uint8_t res = sc_ctrl(_sel_sc(), (Sem_op)0, time);
+	
+	if(res)
+		PERR("an error occured while performing sc_ctrl (0x%x)", res);
+	
+	return time;
+}

@@ -164,6 +164,8 @@ namespace Genode {
 			}
 
 			void single_step(bool on);
+
+			unsigned long execution_time();
 	};
 }
 
