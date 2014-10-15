@@ -64,6 +64,9 @@ Thread_capability Cpu_session_component::create_thread(Name  const &name,
 	_thread_list.insert(thread);
 
 	_trace_sources.insert(thread->trace_source());
+	
+	Lock::Guard global_thread_list_lock_guard(_global_thread_list_lock);
+	_global_thread_list.insert(thread);
 
 	return _thread_ep->manage(thread);
 }
