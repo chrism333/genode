@@ -274,7 +274,16 @@ Dataspace_capability Cpu_session_component::trace_policy(Thread_capability threa
 
 void Cpu_session_component::print_thread_info()
 {
-	PINF("You are a genius");
+	Cpu_thread_component* current = _global_thread_list.first();
+	
+	int i = 0;
+	
+	while(current != nullptr)
+	{
+		PINF("%d \t %s (%ld)", i, current->platform_thread()->name(), current->platform_thread()->execution_time());
+		current = current->next();
+		i++;
+	}
 }
 
 
