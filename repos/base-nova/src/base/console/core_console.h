@@ -144,12 +144,12 @@ namespace Genode {
 
 			void _out_char(char c)
 			{
-				if (!_comport)
-					return;
-
-				if (c == '\n')
-					serial_out_char(_comport, '\r');
-				serial_out_char(_comport, c);
+				if (_comport)
+				{
+					if (c == '\n')
+						serial_out_char(_comport, '\r');
+					serial_out_char(_comport, c);
+				}
 
 				if (!vga_base) return;
 
