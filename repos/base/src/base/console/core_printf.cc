@@ -62,6 +62,16 @@ void Genode::printf(const char *format, ...)
 	core_console().vprintf(format, list);
 
 	va_end(list);
+	
+	static bool b = false;
+	
+	if( format != nullptr & *format == '[')
+		b = true;
+	
+	volatile int i = 0;
+	for( ; (i < 50000000) && b; i++)
+	{
+	}
 }
 
 
