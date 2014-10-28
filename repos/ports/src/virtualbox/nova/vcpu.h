@@ -66,14 +66,15 @@ static inline Genode::uint32_t sel_ar_conv_from_nova(Genode::uint16_t v)
  * Used to map mmio memory to VM
  */
 extern "C" int MMIO2_MAPPED_SYNC(PVM pVM, RTGCPHYS GCPhys, size_t cbWrite,
-                                 void **ppv);
+                                 void **ppv, Genode::Flexpage_iterator &fli);
 
 
 class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 {
 	private:
 
-		X86FXSTATE _fpu_state __attribute__((aligned(0x10)));
+		X86FXSTATE _guest_fpu_state __attribute__((aligned(0x10)));
+		X86FXSTATE _emt_fpu_state __attribute__((aligned(0x10)));
 
 		Genode::Cap_connection _cap_connection;
 		Vmm::Vcpu_other_pd     _vcpu;
@@ -107,6 +108,16 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			INTERRUPT_STATE_NONE  = 0U,
 		};
 
+		/*
+		 * 'longjmp()' restores some FPU registers saved by 'setjmp()',
+		 * so we need to save the guest FPU state before calling 'longjmp()'
+		 */
+		__attribute__((noreturn)) void _fpu_save_and_longjmp()
+		{
+			fpu_save(reinterpret_cast<char *>(&_guest_fpu_state));
+			longjmp(_env, 1);
+		}
+
 	protected:
 
 		struct {
@@ -120,7 +131,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		void *   _stack_reply;
 		jmp_buf  _env;
 
-		void switch_to_hw(PCPUMCTX pCtx) {
+		void switch_to_hw()
+		{
 			unsigned long value;
 
 			if (!setjmp(_env)) {
@@ -128,7 +140,6 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				Nova::reply(_stack_reply);
 			}
 		}
-
 
 		__attribute__((noreturn)) void _default_handler()
 		{
@@ -138,7 +149,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
 
 			/* go back to re-compiler */
-			longjmp(_env, 1);
+			_fpu_save_and_longjmp();
 		}
 
 		__attribute__((noreturn)) void _recall_handler()
@@ -162,10 +173,10 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			/* are we forced to go back to emulation mode ? */
 			if (!continue_hw_accelerated(utcb))
 				/* go back to emulation mode */
-				longjmp(_env, 1);
+				_fpu_save_and_longjmp();
 
 			/* check whether we have to request irq injection window */
-			utcb->mtd = 0;
+			utcb->mtd = Nova::Mtd::FPU;
 			if (check_to_request_irq_window(utcb, _current_vcpu)) {
 				_irq_win = true;
 				Nova::reply(_stack_reply);
@@ -183,6 +194,12 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		void _exc_memory(Genode::Thread_base * myself, Nova::Utcb * utcb,
 		                 bool unmap, Genode::addr_t reason)
 		{
+			/* fault region is ram - so map it */
+			enum {
+				USER_PD = false, GUEST_PGT = true,
+				READABLE = true, WRITEABLE = true, EXECUTABLE = true
+			};
+
 			using namespace Nova;
 			using namespace Genode;
 
@@ -198,6 +215,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 			enum { MAP_SIZE = 0x1000UL };
 
+			bool writeable = WRITEABLE;
+
 			Flexpage_iterator fli;
 			void *pv = guest_memory()->lookup_ram(reason, MAP_SIZE, fli);
 
@@ -206,28 +225,27 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				 * Check whether this is some mmio memory provided by VMM
 				 * we can map, e.g. VMMDev memory or framebuffer currently.
 				 */
-				int res = MMIO2_MAPPED_SYNC(_current_vm, reason, MAP_SIZE, &pv);
+				int res = MMIO2_MAPPED_SYNC(_current_vm, reason, MAP_SIZE, &pv, fli);
 				if (pv && (res == VINF_SUCCESS))
 					fli = Genode::Flexpage_iterator((addr_t)pv, MAP_SIZE,
 					                                reason, MAP_SIZE, reason);
+				else
+				if (pv && (res == VERR_GENERAL_FAILURE)) {
+					writeable = !WRITEABLE;
+				}
 				else
 					pv = 0;
 			}
 
 			/* emulator has to take over if fault region is not ram */	
 			if (!pv)
-				longjmp(_env, 1);
+				_fpu_save_and_longjmp();
 
-			/* fault region is ram - so map it */
-			enum {
-				USER_PD = false, GUEST_PGT = true,
-				READABLE = true, WRITEABLE = true, EXECUTABLE = true
-			};
-			Rights const permission(READABLE, WRITEABLE, EXECUTABLE);
+			Rights const permission(READABLE, writeable, EXECUTABLE);
 
 			/* prepare utcb */
 			utcb->set_msg_word(0);
-			utcb->mtd = 0;
+			utcb->mtd = Mtd::FPU;
 
 			/* add map items until no space is left on utcb anymore */
 			bool res;
@@ -481,7 +499,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			Vmm::printf("type:info:vector %x:%x:%x intr:actv - %x:%x mtd %x\n",
 			     Event.n.u3Type, utcb->inj_info, u8Vector, utcb->intr_state, utcb->actv_state, utcb->mtd);
 */
-			utcb->mtd = Nova::Mtd::INJ; 
+			utcb->mtd = Nova::Mtd::INJ | Nova::Mtd::FPU;
 			Nova::reply(_stack_reply);
 		}
 
@@ -675,7 +693,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED_EXEC);
 
 			/* save current FPU state */
-			fpu_save(reinterpret_cast<char *>(&_fpu_state));
+			fpu_save(reinterpret_cast<char *>(&_emt_fpu_state));
 			/* write FPU state from pCtx to FPU registers */
 			fpu_load(reinterpret_cast<char *>(&pCtx->fpu));
 			/* tell kernel to transfer current fpu registers to vCPU */
@@ -685,7 +703,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			_current_vcpu = pVCpu;
 
 			/* switch to hardware accelerated mode */
-			switch_to_hw(pCtx);
+			switch_to_hw();
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 
@@ -693,11 +711,12 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			_current_vcpu = 0;
 
 			/* write FPU state of vCPU (in current FPU registers) to pCtx */
-			fpu_save(reinterpret_cast<char *>(&pCtx->fpu));
-			/* load saved FPU state of EMT thread */
-			fpu_load(reinterpret_cast<char *>(&_fpu_state));
+			Genode::memcpy(&pCtx->fpu, &_guest_fpu_state, sizeof(X86FXSTATE));
 
-//			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_GLOBAL_TLB_FLUSH);
+			/* load saved FPU state of EMT thread */
+			fpu_load(reinterpret_cast<char *>(&_emt_fpu_state));
+
+			CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_GLOBAL_TLB_FLUSH);
 
 			VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED);
 
@@ -723,7 +742,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 				next_utcb.mtd        |= Mtd::STA;
 			}
 
-			return VINF_EM_RAW_EMULATE_INSTR;
+			return (exit_reason == RECALL) ? VINF_SUCCESS : VINF_EM_RAW_EMULATE_INSTR;
 		}
 };
 
