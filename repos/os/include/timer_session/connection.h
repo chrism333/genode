@@ -16,6 +16,7 @@
 
 #include <timer_session/client.h>
 #include <base/connection.h>
+#include <base/printf.h>
 
 namespace Timer {
 
@@ -54,6 +55,7 @@ namespace Timer {
 
 			void usleep(unsigned us)
 			{
+// 				PINF("timer: usleep %u us", us);
 				/* serialize sleep calls issued by different threads */
 				Lock::Guard guard(_lock);
 
@@ -72,6 +74,7 @@ namespace Timer {
 
 			void msleep(unsigned ms)
 			{
+// 				PINF("timer: msleep %u ms", ms);
 				usleep(1000*ms);
 			}
 	};

@@ -29,6 +29,7 @@ append build_components {
 	app/pointer 
 	app/status_bar
 	server/report_rom
+	server/cpu_profiler
 }
 
 # application components
@@ -77,6 +78,7 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
+
 }
 
 # Basic driver configuration
@@ -280,6 +282,7 @@ append boot_modules {
 	libm.lib.so pthread.lib.so
 	libc_lock_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so
+	cpu_profiler
 }
 
 build_boot_image $boot_modules

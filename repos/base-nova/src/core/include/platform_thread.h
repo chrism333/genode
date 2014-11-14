@@ -51,12 +51,12 @@ namespace Genode {
 			addr_t _sel_ec() const { return _id_base; }
 			addr_t _sel_sc() const { return _id_base + 1; }
 
+		public:
+
 			/* convenience function to access _feature variable */
 			inline bool is_main_thread() { return _features & MAIN_THREAD; }
 			inline bool is_vcpu()        { return _features & VCPU; }
 			inline bool is_worker()      { return _features & WORKER; }
-
-		public:
 
 			/* invalid thread number */
 			enum { THREAD_INVALID = -1 };

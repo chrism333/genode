@@ -238,3 +238,6 @@ Cpu_session_component::Cpu_session_component(Signal_receiver *exception_signal_r
 Cpu_session_component::~Cpu_session_component()
 {
 }
+
+void Cpu_session_component::print_thread_info()
+{}

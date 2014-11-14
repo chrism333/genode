@@ -305,7 +305,7 @@ int main(int, char **)
 			    mp.submit(*event);
 		}
 		
-		timer.msleep(2);
+		timer.msleep(20);
 	}
 	return 0;
 }

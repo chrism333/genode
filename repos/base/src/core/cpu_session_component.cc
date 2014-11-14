@@ -291,7 +291,18 @@ void Cpu_session_component::print_thread_info()
 		
 		mem[i] = time;
 		
-		PINF("CPU: %d\t%ld\t%ld\t%s", i,percent, time, current->platform_thread()->name());
+		const char *thread;
+		
+		if(current->platform_thread()->is_main_thread())
+			thread = "main";
+		else if(current->platform_thread()->is_vcpu())
+			thread = "vcpu";
+		else if(current->platform_thread()->is_worker())
+			thread = "worker";
+		else
+		    thread = "";
+		
+		PINF("CPU: %d\t%ld\t%ld\t%s\t%s", i,percent, time, current->platform_thread()->name(), thread);
 		
 		current = current->next();
 		i++;

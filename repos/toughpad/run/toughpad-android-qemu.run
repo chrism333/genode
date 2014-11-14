@@ -17,6 +17,7 @@ append build_components {
 	drivers/pci
 	drivers/framebuffer
 	drivers/usb
+	server/cpu_profiler
 }
 
 # android components 
@@ -57,6 +58,7 @@ set config {
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
 	</start>
+
 }
 
 # Basic driver configuration
@@ -146,6 +148,7 @@ append boot_modules {
 	libm.lib.so pthread.lib.so
 	libc_lock_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so
+	cpu_profiler
 }
 
 build_boot_image $boot_modules

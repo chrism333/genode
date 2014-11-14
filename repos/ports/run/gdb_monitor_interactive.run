@@ -90,7 +90,7 @@ build_boot_image $boot_modules
 # Execute test case
 #
 #
-set local_port 5555
+set local_port 6666
 
 # qemu config
 append qemu_args " -m 128 -nographic "

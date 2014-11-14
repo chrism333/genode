@@ -25,6 +25,7 @@
 /* local includes */
 #include "platform_timer.h"
 
+#include <base/printf.h>
 
 namespace Timer {
 
@@ -248,11 +249,13 @@ namespace Timer {
 
 			void trigger_once(unsigned us)
 			{
+// 				PINF("timer: trigger once (%d us)", us);
 				_trigger(us, false);
 			}
 
 			void trigger_periodic(unsigned us)
 			{
+// 				PINF("timer: trigger periodic (%d us)", us);
 				_trigger(us, true);
 			}
 

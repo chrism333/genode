@@ -17,6 +17,7 @@ append build_components {
 	drivers/pci
 	drivers/framebuffer
 	drivers/usb
+	server/cpu_profiler
 }
 
 # android components 
@@ -71,6 +72,14 @@ set config {
 		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="1M"/>
 		<provides> <service name="Timer"/> </provides>
+	</start>
+	<start name="cpu_profiler">
+		<affinity xpos="0" ypos="0" width="1" height="1" />
+		<resource name="RAM" quantum="2M" />
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 	</start>
 }
 
@@ -195,6 +204,7 @@ append config {
 			<policy label="usb_drv" file="/usb.log" />
 			<policy label="rtc_drv" file="/rtc.log" />
 			<policy label="virtualbox" file="/virtualbox.log" />
+			<policy label="cpu_profiler" file="/cpu.log" />
 			<libc stdout="/dev/log">
 			<vfs>
 				<dir name="dev"> <log/> </dir>
@@ -255,6 +265,7 @@ append boot_modules {
 	libm.lib.so pthread.lib.so
 	libc_lock_pipe.lib.so libc_terminal.lib.so
 	libiconv.lib.so
+	cpu_profiler
 }
 
 # file system modules 

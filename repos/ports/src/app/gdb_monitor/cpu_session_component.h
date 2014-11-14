@@ -76,6 +76,7 @@ class Cpu_session_component : public Rpc_object<Cpu_session>
 		unsigned trace_control_index(Thread_capability);
 		Dataspace_capability trace_buffer(Thread_capability);
 		Dataspace_capability trace_policy(Thread_capability);
+		void print_thread_info();
 };
 
 #endif /* _CPU_SESSION_COMPONENT_H_ */

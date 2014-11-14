@@ -21,6 +21,7 @@
 #include "vcpu.h"
 #include "vmx.h"
 
+#include <base/printf.h>
 
 class Vcpu_handler_vmx : public Vcpu_handler
 {
@@ -123,6 +124,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			 Vcpu_handler(stack_size, attr, start_routine, arg, cpu_session, 
 			              location)
 		{
+			PINF("TEST");
 			using namespace Nova;
 
 			typedef Vcpu_handler_vmx This;
