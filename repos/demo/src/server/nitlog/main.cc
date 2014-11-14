@@ -32,8 +32,8 @@
 #include <nitpicker_gfx/box_painter.h>
 
 
-enum { LOG_W = 80 };  /* number of visible characters per line */
-enum { LOG_H = 25 };  /* number of lines of log window         */
+enum { LOG_W = 160 };  /* number of visible characters per line */
+enum { LOG_H = 60 };  /* number of lines of log window         */
 
 typedef Text_painter::Font          Font;
 typedef Genode::Surface_base::Point Point;

@@ -29,6 +29,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 		template <unsigned X>
 		__attribute__((noreturn)) void _vmx_ept()
 		{
+// 			Vmm::printf("VCPU: vmx ept\n");
 			using namespace Nova;
 			using namespace Genode;
 
@@ -39,10 +40,11 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			               utcb->qual[1] & ~((1UL << 12) - 1));
 		}
 
-		__attribute__((noreturn)) void _vmx_default() { _default_handler(); }
+		__attribute__((noreturn)) void _vmx_default() { /*Vmm::printf("VCPU: vmx default");*/ _default_handler(); }
 
 		__attribute__((noreturn)) void _vmx_startup()
 		{
+// 			Vmm::printf("VCPU: vmx startup\n");
 			using namespace Nova;
 
 			Genode::Thread_base *myself = Genode::Thread_base::myself();
@@ -82,6 +84,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 
 		__attribute__((noreturn)) void _vmx_triple()
 		{
+// 			Vmm::printf("VCPU: vmx triples\n");
 			Genode::Thread_base *myself = Genode::Thread_base::myself();
 			using namespace Nova;
 
@@ -90,15 +93,17 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			_default_handler();
 		}
 
-		__attribute__((noreturn)) void _vmx_irqwin() { _irq_window(); }
+		__attribute__((noreturn)) void _vmx_irqwin() { /*Vmm::printf("VCPU: vmx irqwin");*/ _irq_window(); }
 
 		__attribute__((noreturn)) void _vmx_recall()
 		{
+// 			Vmm::printf("VCPU: vmx recall\n");
 			Vcpu_handler::_recall_handler();
 		}
 
 		__attribute__((noreturn)) void _vmx_invalid()
 		{
+// 			Vmm::printf("VCPU: vmx invalid\n");
 			Genode::Thread_base *myself = Genode::Thread_base::myself();
 			Nova::Utcb *utcb = reinterpret_cast<Nova::Utcb *>(myself->utcb());
 
@@ -123,6 +128,7 @@ class Vcpu_handler_vmx : public Vcpu_handler
 			 Vcpu_handler(stack_size, attr, start_routine, arg, cpu_session, 
 			              location)
 		{
+// 			Vmm::printf("VCPU: vmx Constructor\n");
 			using namespace Nova;
 
 			typedef Vcpu_handler_vmx This;

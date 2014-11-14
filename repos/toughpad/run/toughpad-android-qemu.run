@@ -99,7 +99,7 @@ append config {
 		</provides>
 	</start>
 	<start name="virtualbox">
-		<resource name="RAM" quantum="1G"/>
+		<resource name="RAM" quantum="512MB"/>
 		<config>
 			<image type="iso" file="android.iso" />
 			<libc stdout="/dev/log" stderr="/dev/log">
@@ -154,7 +154,7 @@ build_boot_image $boot_modules
 # Execute test case
 #
 
-append qemu_args " -m 2048 "
+append qemu_args " -m 1024 "
 append qemu_args " -usbdevice mouse "
 append qemu_args " -usbdevice keyboard "
 

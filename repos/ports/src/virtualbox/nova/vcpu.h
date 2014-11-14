@@ -133,6 +133,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 		void switch_to_hw()
 		{
+// 			Vmm::printf("VCPU: switch to hw\n");
 			unsigned long value;
 
 			if (!setjmp(_env)) {
@@ -143,7 +144,9 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 		__attribute__((noreturn)) void _default_handler()
 		{
+			
 			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+// 			Vmm::printf("VCPU: default handler\n");
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 			Assert(!(utcb->inj_info & IRQ_INJ_VALID_MASK));
@@ -155,6 +158,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		__attribute__((noreturn)) void _recall_handler()
 		{
 			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+// 			Vmm::printf("VCPU: recall handler\n");
 
 			Assert(utcb->actv_state == ACTIVITY_STATE_ACTIVE);
 			Assert(utcb->intr_state == INTERRUPT_STATE_NONE);
@@ -194,6 +198,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		void _exc_memory(Genode::Thread_base * myself, Nova::Utcb * utcb,
 		                 bool unmap, Genode::addr_t reason)
 		{
+// 			Vmm::printf("VCPU: exc memory\n");
 			/* fault region is ram - so map it */
 			enum {
 				USER_PD = false, GUEST_PGT = true,
@@ -427,6 +432,8 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		__attribute__((noreturn)) void _irq_window()
 		{
 			Nova::Utcb * utcb = reinterpret_cast<Nova::Utcb *>(Thread_base::utcb());
+			
+// 			Vmm::printf("VCPU: irq window\n");
 
 			PVMCPU   pVCpu = _current_vcpu;
 
@@ -507,6 +514,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 		inline bool continue_hw_accelerated(Nova::Utcb * utcb)
 		{
 			Assert(!(VMCPU_FF_ISSET(_current_vcpu, VMCPU_FF_INHIBIT_INTERRUPTS)));
+			
 
 			uint32_t check_vm = VM_FF_HWACCM_TO_R3_MASK | VM_FF_REQUEST
 			                    | VM_FF_PGM_POOL_FLUSH_PENDING
@@ -515,12 +523,17 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			                      | VMCPU_FF_PGM_SYNC_CR3
 			                      | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL
 			                      | VMCPU_FF_REQUEST;
+								  
+								  
+// 			Vmm::printf("VCPU: continue hw accelerated\n");
 
 			if (!VM_FF_ISPENDING(_current_vm, check_vm) &&
 			    !VMCPU_FF_ISPENDING(_current_vcpu, check_vcpu))
 				return true;
 
 			Assert(!(VM_FF_ISPENDING(_current_vm, VM_FF_PGM_NO_MEMORY)));
+			
+
 
 			return false;
 		}
@@ -553,14 +566,16 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 			_vcpu(cpu_session, location),
 			_ec_sel(Genode::cap_map()->insert()),
 			_irq_win(false)
-		{ }
+		{ /*Vmm::printf("VCPU: Constructor\n");*/}
 
 		void start() {
+// 			Vmm::printf("VCPU: start\n");
 			_vcpu.start(_ec_sel);
 		}
 
 		void recall()
 		{
+// 			Vmm::printf("VCPU: recall\n");
 			using namespace Nova;
 
 			if (ec_ctrl(EC_RECALL, _ec_sel) != NOVA_OK) {
@@ -654,6 +669,7 @@ class Vcpu_handler : public Vmm::Vcpu_dispatcher<pthread>
 
 		int run_hw(PVMR0 pVMR0, VMCPUID idCpu)
 		{
+// 			Vmm::printf("VCPU: run hw\n");
 			VM     * pVM   = reinterpret_cast<VM *>(pVMR0);
 			PVMCPU   pVCpu = &pVM->aCpus[idCpu];
 			PCPUMCTX pCtx  = CPUMQueryGuestCtxPtr(pVCpu);

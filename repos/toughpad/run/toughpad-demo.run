@@ -17,6 +17,7 @@ append build_components {
 	drivers/pci
 	drivers/framebuffer
 	drivers/usb
+	drivers/input
 }
 
 # nitpicker components
@@ -90,13 +91,21 @@ append config {
  		<config width="1280"
 				height="800"
 				depth="16"
-				buffered="yes"
-				offset="yes"/>
+				buffered="no"
+				offset="no"/>
 	</start>
 	<start name="usb_drv">
 		<resource name="RAM" quantum="12M"/>
 		<provides><service name="Input"/></provides>
 		<config ehci="yes" uhci="yes" xhci="yes"> <hid/> </config>
+		<route>
+			<service name="LOG"> <child name="nitlog"/> </service>
+			<any-service> <parent/> <any-child/> </any-service>
+		</route>
+	</start>
+	<start name="dummy_input_drv">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="Input"/></provides>
 	</start>
 }
 
@@ -131,6 +140,11 @@ append config {
 			<global-key name="KEY_F11"        operation="kill" />
 			<global-key name="KEY_F12"        operation="xray" />
 		</config>
+		<route>
+			<service name="Framebuffer"><child name="fb_drv" /></service>
+			<service name="Input"><child name="dummy_input_drv" /></service>
+			<any-service><parent/><any-child/></any-service>
+	  </route>
 	</start>
 	<start name="pointer">
 		<resource name="RAM" quantum="1M"/>
@@ -150,6 +164,10 @@ append config {
 	<start name="launchpad">
 		<resource name="RAM" quantum="64M" />
 		<configfile name="launchpad.config" />
+	</start>
+	<start name="nitlog">
+		<resource name="RAM" quantum="4M" />
+		<provides><service name="LOG"/></provides>
 	</start>
 }
 
@@ -188,6 +206,7 @@ append boot_modules {
 	acpi_drv pci_drv pci_device_pd 
 	fb_drv
 	usb_drv
+	dummy_input_drv
 }
 
 # nitpicker modules

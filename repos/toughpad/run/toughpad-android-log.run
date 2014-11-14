@@ -155,12 +155,12 @@ append config {
 
 append config {
 	<start name="ahci">
-		<affinity xpos="3" ypos="0" width="1" height="1" />
+		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="32M"/>
 		<provides><service name="Block"/></provides>
     </start>
 	<start name="part_blk">
-		<affinity xpos="3" ypos="0" width="1" height="1" />
+		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="10M" />
 		<provides><service name="Block" /></provides>
 		<route>
@@ -172,7 +172,7 @@ append config {
 		</config>
 	</start>
 	<start name="rump_fs">
-		<affinity xpos="3" ypos="0" width="1" height="1" />
+		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="100M" />
 		<provides><service name="File_system"/></provides>
 		<route>
@@ -187,7 +187,7 @@ append config {
 
 append config {
 	<start name="fs_log">
-		<affinity xpos="3" ypos="0" width="1" height="1" />
+		<affinity xpos="0" ypos="0" width="1" height="1" />
 		<resource name="RAM" quantum="2M"/>
 		<provides><service name="LOG"/></provides>
 		<config>

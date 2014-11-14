@@ -80,7 +80,7 @@ append config {
  		<config width="1280"
 				height="800"
 				depth="16"
-				buffered="yes"
+				buffered="no"
 				offset="yes"/>
 	</start>
 	<start name="usb_drv" priority="-1">

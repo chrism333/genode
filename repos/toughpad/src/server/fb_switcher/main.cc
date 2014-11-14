@@ -78,6 +78,7 @@ class Multiplexer
 		void refresh(int x, int y, int w, int h, int id) {
 			Genode::Lock::Guard guard(_lock);
 
+			
 			if( id != _current_id)
 				return;
 		
@@ -299,13 +300,13 @@ int main(int, char **)
 			else if( event->type()  == Input::Event::RELEASE)
 				key_count--;
 		  
-			if( event->type()  == Input::Event::PRESS && event->code() == 68 && key_count == 1) // F10 pressed and are all other buttons released?
+			if( event->type()  == Input::Event::PRESS && event->code() == 68 /*&& key_count == 1*/) // F10 pressed and are all other buttons released?
 				mp.switch_fb();
 			else
 			    mp.submit(*event);
 		}
 		
-		timer.msleep(2);
+		timer.msleep(50);
 	}
 	return 0;
 }

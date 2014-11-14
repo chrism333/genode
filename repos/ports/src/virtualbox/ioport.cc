@@ -111,9 +111,9 @@ class Guest_ioports
 					return rc;
 					
 				rc = _pfnInCallback(_pDevIns, _pvUser, port, pu32Value, cb);
-				if (rc != VINF_SUCCESS)
-					PDBG("IOPORT read port=0x%x failed - callback %p eip %p",
-					     port, _pfnInCallback, __builtin_return_address(0));
+// 				if (rc != VINF_SUCCESS)
+// 					PDBG("IOPORT read port=0x%x failed - callback %p eip %p",
+// 					     port, _pfnInCallback, __builtin_return_address(0));
  
 				PDMCritSectLeave(_pDevIns->CTX_SUFF(pCritSectRo));
 
@@ -210,8 +210,8 @@ class Guest_ioports
 				return VINF_SUCCESS;
 
 			char c = u32Value & 0xff;
-			PWRN("attempted to write to non-existing port 0x%lx+%u  %c (%02x)",
-			     port, cbValue, c >= 32 && c <= 176 ? c : '.', c);
+// 			PWRN("attempted to write to non-existing port 0x%lx+%u  %c (%02x)",
+// 			     port, cbValue, c >= 32 && c <= 176 ? c : '.', c);
 			return VINF_SUCCESS;
 		}
 
@@ -224,9 +224,9 @@ class Guest_ioports
 					return err;
 			}
 
-			if (!_white_listed(port))
-				PWRN("attempted to read from non-existing port 0x%x+%u %p",
-				     port, cbValue, r);
+// 			if (!_white_listed(port))
+// 				PWRN("attempted to read from non-existing port 0x%x+%u %p",
+// 				     port, cbValue, r);
 
 			switch (cbValue)
 			{

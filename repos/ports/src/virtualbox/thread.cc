@@ -60,9 +60,12 @@ extern "C" {
 	int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 	                   void *(*start_routine) (void *), void *arg)
 	{
+	  
 		PRTTHREADINT rtthread = reinterpret_cast<PRTTHREADINT>(arg);
 
 		Assert(rtthread);
+		
+		PINF("VBOX: pthread_create: %s");
 
 		size_t stack_size = Genode::Native_config::context_virtual_size() -
 		                    sizeof(Genode::Native_utcb) - 2 * (1UL << 12);

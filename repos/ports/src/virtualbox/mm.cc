@@ -152,6 +152,8 @@ static unsigned align_by_mmtag(MMTAG enmTag)
 	case MM_TAG_PDM_DEVICE:
 	case MM_TAG_PDM_DEVICE_USER:
 		return 12;
+	case MM_TAG_TRPM:
+		return 8;
 	default:
 		return Genode::log2(RTMEM_ALIGNMENT);
 	}
@@ -220,6 +222,7 @@ int MMR3HyperAllocOnceNoRelEx(PVM pVM, size_t cb, uint32_t uAlignment,
 
 int MMHyperAlloc(PVM pVM, size_t cb, unsigned uAlignment, MMTAG enmTag, void **ppv)
 {
+// 	PINF("Hyperalloc: uAlignment=%d, tag=%d", uAlignment, align_by_mmtag(enmTag));
 	AssertRelease(align_by_mmtag(enmTag) >= uAlignment);
 
 	*ppv = MMR3HeapAllocZ(pVM, enmTag, cb);

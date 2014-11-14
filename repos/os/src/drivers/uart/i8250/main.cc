@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 			 * We assume the underlying kernel uses UART0 and, therefore, start at
 			 * index 1 for the user-level driver.
 			 */
-			if (index < 1 || index >= UART_NUM)
+			if (index < 0 || index >= UART_NUM)
 				throw Uart::Driver_factory::Not_available();
 
 			enum { BAUD = 115200 };

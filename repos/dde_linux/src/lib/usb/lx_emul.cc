@@ -754,7 +754,7 @@ class Driver : public Genode::List<Driver>::Element
 				return false;
 
 			bool ret = _drv->bus->match ? _drv->bus->match(dev, _drv) : true;
-			dde_kit_log(DEBUG_DRIVER, "MATCH: %s ret: %u match: %p",
+			dde_kit_log(1, "MATCH: %s ret: %u match: %p",
 			            _drv->name, ret,  _drv->bus->match);
 			return ret;
 		}
@@ -764,17 +764,23 @@ class Driver : public Genode::List<Driver>::Element
 		 */
 		int probe(struct device *dev)
 		{
+			dde_kit_log(1, "Probe start!");
+		  
 			dev->driver = _drv;
 
+			int ret = 0;
+			
 			if (dev->bus->probe) {
-				dde_kit_log(DEBUG_DRIVER, "Probing device bus %p", dev->bus->probe);
-				return dev->bus->probe(dev);
+				dde_kit_log(1, "Probing device bus %p", dev->bus->probe);
+				ret = dev->bus->probe(dev);
 			} else if (_drv->probe) {
-				dde_kit_log(DEBUG_DRIVER, "Probing driver: %s", _drv->name);
-				return _drv->probe(dev);
+				dde_kit_log(1, "Probing driver: %s", _drv->name);
+				ret = _drv->probe(dev);
 			}
+			
+			dde_kit_log(1, "Probe stop!");
 
-			return 0;
+			return ret;
 		}
 };
 
