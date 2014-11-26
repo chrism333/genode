@@ -32,7 +32,7 @@ using namespace Vesa;
  */
 static Dataspace_capability io_mem_cap;
 
-static const bool verbose = false;
+static const bool verbose = true;
 
 /***************
  ** Utilities **

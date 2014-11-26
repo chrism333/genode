@@ -24,7 +24,7 @@
 
 using namespace Genode;
 
-static const bool verbose = false;
+static const bool verbose = true;
 
 /************************
  ** PCI virtualization **

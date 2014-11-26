@@ -41,9 +41,9 @@ using X86emu::CODESIZE;
 
 struct X86emu::X86emu_mem X86emu::x86_mem;
 
-static const bool verbose      = false;
-static const bool verbose_mem  = false;
-static const bool verbose_port = false;
+static const bool verbose      = true;
+static const bool verbose_mem  = true;
+static const bool verbose_port = true;
 
 
 /***************
