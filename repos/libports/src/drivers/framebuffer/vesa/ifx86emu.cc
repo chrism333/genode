@@ -42,8 +42,8 @@ using X86emu::CODESIZE;
 struct X86emu::X86emu_mem X86emu::x86_mem;
 
 static const bool verbose      = true;
-static const bool verbose_mem  = true;
-static const bool verbose_port = true;
+static const bool verbose_mem  = false;
+static const bool verbose_port = false;
 
 
 /***************
@@ -482,12 +482,14 @@ TYPE * X86emu::virt_addr(ADDR_TYPE addr)
 
 
 uint16_t X86emu::x86emu_cmd(uint16_t eax, uint16_t ebx, uint16_t ecx,
-                            uint16_t edi, uint16_t *out_ebx)
+                            uint16_t edi, uint16_t *out_ebx, uint16_t edx,
+							uint16_t *out_ecx, uint16_t *out_edx)
 {
 	using namespace X86emu;
 	M.x86.R_EAX  = eax;          /* int10 function number */
 	M.x86.R_EBX  = ebx;
 	M.x86.R_ECX  = ecx;
+	M.x86.R_EDX  = edx;
 	M.x86.R_EDI  = edi;
 	M.x86.R_IP   = 0;            /* address of "int10; ret" */
 	M.x86.R_SP   = PAGESIZE;     /* SS:SP pointer to stack */
@@ -500,6 +502,10 @@ uint16_t X86emu::x86emu_cmd(uint16_t eax, uint16_t ebx, uint16_t ecx,
 
 	if (out_ebx)
 	    *out_ebx = M.x86.R_EBX;
+	if (out_ecx)
+	    *out_ecx = M.x86.R_ECX;
+	if (out_edx)
+	    *out_edx = M.x86.R_EDX;
 
 	return M.x86.R_AX;
 }

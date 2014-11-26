@@ -223,6 +223,8 @@ int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
 		get_vesa_mode(ctrl_info, mode_info, 0, 0, 0, true);
 		return -4;
 	}
+	
+	printf("set mode: %x\n", vesa_mode);
 
 	/* set mode */
 	if ((X86emu::x86emu_cmd(VBE_MODE_FUNC, vesa_mode) & 0xFF00) != VBE_SUCCESS) {
@@ -230,6 +232,8 @@ int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
 		return -5;
 	}
 
+	printf("map framebuffer\n");
+	
 	/* map framebuffer */
 	void *fb;
 	if (!io_mem_cap.valid()) {
@@ -242,9 +246,36 @@ int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
 		           &fb, 0, &io_mem_cap);
 	}
 
+	printf("print regions\n");
+	
 	if (verbose)
 		X86emu::print_regions();
-
+	
+	uint16_t ret;
+	uint16_t bytes_per_scanline;
+	uint16_t pixels_per_scanline;
+	uint16_t max_scanlines;
+	printf("\nGet logical Scan Line Length:\n");
+	ret = X86emu::x86emu_cmd(0x4f06, 0x0001, 0, 0, &bytes_per_scanline, 0, &pixels_per_scanline, &max_scanlines);
+	
+	printf("\treturn: %x\n", ret);
+	printf("\tBytes per scanline:  %d\n", bytes_per_scanline);
+	printf("\tPixels per scanline: %d\n", pixels_per_scanline);
+	printf("\tMaximum scanlines  : %d\n", max_scanlines);
+	
+	uint16_t first_scanline;
+	uint16_t first_pixel;
+	uint16_t dummy;
+	printf("\nGet Display Start:\n");
+	ret = X86emu::x86emu_cmd(0x4f07, 0x0001, 0, 0, &dummy, 0, &first_pixel, &first_scanline);
+	
+	printf("\treturn: %x\n", ret);
+	printf("\tdummy: %d\n", dummy);
+	printf("\tfirst pixel: %d\n", first_pixel);
+	printf("\tfirst scanline: %d\n", first_scanline);
+	
+	printf("\nFramebuffer pointer: %lx\n", fb);
+	
 	return 0;
 }
 

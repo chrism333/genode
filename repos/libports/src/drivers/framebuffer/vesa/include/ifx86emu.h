@@ -70,7 +70,8 @@ namespace X86emu {
 	 * Execute real mode command
 	 */
 	uint16_t x86emu_cmd(uint16_t eax, uint16_t ebx = 0, uint16_t ecx = 0,
-	                    uint16_t edi = 0, uint16_t *out_ebx = 0);
+	                    uint16_t edi = 0, uint16_t *out_ebx = 0, uint16_t edx = 0,
+						uint16_t *out_ecx = 0, uint16_t *out_edx = 0);
 
 	/**
 	 * Map requested address to local virtual address
