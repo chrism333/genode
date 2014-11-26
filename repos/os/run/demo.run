@@ -12,12 +12,6 @@ set build_components {
 	server/report_rom
 }
 
-lappend_if [have_spec usb]          build_components drivers/usb
-lappend_if [have_spec gpio]         build_components drivers/gpio
-lappend_if [have_spec imx53]        build_components drivers/platform
-lappend_if [have_spec exynos5]      build_components drivers/platform
-lappend_if [have_spec platform_rpi] build_components drivers/platform
-
 build $build_components
 
 create_boot_directory
@@ -43,76 +37,23 @@ append config {
 	</parent-provides>
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
-	</default-route>}
-
-append_if [have_spec sdl] config {
-	<start name="fb_sdl">
-		<resource name="RAM" quantum="4M"/>
-		<provides>
-			<service name="Input"/>
-			<service name="Framebuffer"/>
-		</provides>
-	</start>}
-
-append_if [have_spec pci] config {
+	</default-route>
 	<start name="pci_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="PCI"/></provides>
-	</start>}
-
-append_if [have_spec framebuffer] config {
-	<start name="fb_drv">
+	</start><start name="fb_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
-	</start>}
-
-append_if [have_spec gpio] config {
-	<start name="gpio_drv">
-		<resource name="RAM" quantum="4M"/>
-		<provides><service name="Gpio"/></provides>
-		<config/>
-	</start>}
-
-append_if [have_spec exynos5] config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Regulator"/></provides>
-		<config/>
-	</start>}
-
-append_if [have_spec platform_rpi] config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Platform"/></provides>
-		<config/>
-	</start>}
-
-append_if [have_spec imx53] config {
-	<start name="platform_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Platform"/></provides>
-		<config/>
+		<config 
+			width="1280"
+			height="800"
+			depth="16"
+			buffered="no" />
 	</start>
-	<start name="input_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="Input"/></provides>
-		<config/>
-	</start> }
-
-append_if [have_spec ps2] config {
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Input"/></provides>
-	</start>}
-
-append_if [expr ![have_spec ps2] && [have_spec usb]] config {
-	<start name="usb_drv">
-		<resource name="RAM" quantum="12M"/>
-		<provides><service name="Input"/></provides>
-		<config ehci="yes" uhci="yes" xhci="no"> <hid/> </config>
-	</start> }
-
-append config {
+	</start>
 	<start name="timer">
 		<resource name="RAM" quantum="1M"/>
 		<provides><service name="Timer"/></provides>
@@ -199,19 +140,8 @@ set boot_modules {
 	nitpicker pointer status_bar report_rom liquid_fb launchpad scout
 	testnit nitlog
 	launchpad.config
+	ps2_drv fb_drv pci_drv
 }
-
-# platform-specific modules
-lappend_if [have_spec linux]        boot_modules fb_sdl
-lappend_if [have_spec pci]          boot_modules pci_drv
-lappend_if [have_spec ps2]          boot_modules ps2_drv
-lappend_if [have_spec framebuffer]  boot_modules fb_drv
-lappend_if [have_spec usb]          boot_modules usb_drv
-lappend_if [have_spec gpio]         boot_modules gpio_drv
-lappend_if [have_spec imx53]        boot_modules platform_drv
-lappend_if [have_spec exynos5]      boot_modules platform_drv
-lappend_if [have_spec platform_rpi] boot_modules platform_drv
-lappend_if [have_spec imx53]        boot_modules input_drv
 
 build_boot_image $boot_modules
 
