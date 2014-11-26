@@ -8,7 +8,7 @@ set build_components {
 	server/nitpicker app/pointer app/status_bar
 	server/liquid_framebuffer app/launchpad app/scout
 	test/nitpicker server/nitlog
-	drivers/framebuffer drivers/pci drivers/input
+	drivers/framebuffer drivers/pci drivers/input drivers/acpi
 	server/report_rom
 }
 
@@ -38,10 +38,20 @@ append config {
 	<default-route>
 		<any-service> <parent/> <any-child/> </any-service>
 	</default-route>
-	<start name="pci_drv">
-		<resource name="RAM" quantum="1M"/>
-		<provides><service name="PCI"/></provides>
-	</start><start name="fb_drv">
+	<start name="acpi">
+		<resource name="RAM" quantum="32M"/>
+		<binary name="acpi_drv"/>
+		<provides>
+			<service name="PCI"/>
+			<service name="IRQ" />
+		</provides>
+		<route>
+			<service name="PCI"> <any-child /> </service>
+			<service name="IRQ"> <any-child /> </service>
+			<any-service> <parent/> <any-child /> </any-service>
+		</route>
+	</start>
+	<start name="fb_drv">
 		<resource name="RAM" quantum="4M"/>
 		<provides><service name="Framebuffer"/></provides>
 		<config 
@@ -140,7 +150,7 @@ set boot_modules {
 	nitpicker pointer status_bar report_rom liquid_fb launchpad scout
 	testnit nitlog
 	launchpad.config
-	ps2_drv fb_drv pci_drv
+	ps2_drv fb_drv pci_drv pci_device_pd acpi_drv
 }
 
 build_boot_image $boot_modules
