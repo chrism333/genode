@@ -10,6 +10,10 @@ set build_components {
 	test/nitpicker server/nitlog
 	drivers/framebuffer drivers/pci drivers/input drivers/acpi
 	server/report_rom
+	drivers/ahci
+	server/part_blk
+	server/rump_fs
+	server/fs_log
 }
 
 build $build_components
@@ -59,6 +63,10 @@ append config {
 			height="800"
 			depth="16"
 			buffered="no" />
+		<route>
+			<service name="LOG"><child name="fs_log" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
 	</start>
 	<start name="ps2_drv">
 		<resource name="RAM" quantum="1M"/>
@@ -111,6 +119,43 @@ append config {
 		<resource name="RAM" quantum="64M" />
 		<configfile name="launchpad.config" />
 	</start>
+	<start name="ahci">
+		<resource name="RAM" quantum="32M"/>
+		<provides><service name="Block"/></provides>
+    </start>
+	<start name="part_blk">
+		<resource name="RAM" quantum="10M" />
+		<provides><service name="Block" /></provides>
+		<route>
+			<service name="Block"><child name="ahci" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+		<config>
+			<policy label="rump_fs" partition="3"/>
+		</config>
+	</start>
+	<start name="rump_fs">
+		<resource name="RAM" quantum="1024M" />
+		<provides><service name="File_system"/></provides>
+		<route>
+			<service name="Block"><child name="part_blk" /></service>
+			<any-service><parent/><any-child/></any-service>
+		</route>
+		<config fs="ext2fs"><policy label="" root="/" writeable="yes"/></config>
+	</start>
+	<start name="fs_log">
+		<resource name="RAM" quantum="2M"/>
+		<provides><service name="LOG"/></provides>
+		<config>
+			<policy label="fb_drv" file="/fb.log" />
+			<libc stdout="/dev/log">
+			<vfs>
+				<dir name="dev"> <log/> </dir>
+				<fs/>
+			</vfs>
+			</libc>
+		</config>
+	</start>
 </config>}
 
 install_config $config
@@ -151,6 +196,11 @@ set boot_modules {
 	testnit nitlog
 	launchpad.config
 	ps2_drv fb_drv pci_drv pci_device_pd acpi_drv
+	ahci
+	part_blk
+	rump_fs rump.lib.so rump_fs.lib.so 
+	ld.lib.so libc.lib.so 
+	fs_log
 }
 
 build_boot_image $boot_modules
