@@ -274,7 +274,64 @@ int Framebuffer_drv::set_mode(unsigned long width, unsigned long height,
 	printf("\tfirst pixel: %d\n", first_pixel);
 	printf("\tfirst scanline: %d\n", first_scanline);
 	
-	printf("\nFramebuffer pointer: %lx\n", fb);
+	printf("\nFramebuffer pointer: %p\n", fb);
+	
+	printf("\nGet current VBE mode: \n");
+	uint16_t current_vbe_mode;
+	ret = X86emu::x86emu_cmd(0x4f03, 0, 0, 0, &current_vbe_mode);
+	printf("\treturn: %x\n", ret);
+	printf("\tVBE mode: %x\n", current_vbe_mode);
+	
+	printf("\nGet current mode info: \n");
+	X86emu::x86emu_cmd(VBE_INFO_FUNC, 0, vesa_mode, VESA_MODE_OFFS);
+	printf("\treturn: %x\n", ret);
+	
+	printf("    mode_attributes:     0x%x\n", mode_info->mode_attributes);
+	printf("    win_a_attributes:    0x%x\n", mode_info->win_a_attributes);
+	printf("    win_b_attributes:    0x%x\n", mode_info->win_b_attributes);
+	printf("    win_granularity:     %d\n", mode_info->win_granularity);
+	printf("    win_size:            %d\n", mode_info->win_size);
+	printf("    win_a_segment:       %d\n", mode_info->win_a_segment);
+	printf("    win_b_segment:       %d\n", mode_info->win_b_segment);
+	printf("    win_func:            %d\n", mode_info->win_func);
+	printf("    bytes_per_scanline:  %d\n", mode_info->bytes_per_scanline);
+	
+	printf("    x_resolution:           %d\n", mode_info->x_resolution);
+	printf("    y_resolution:           %d\n", mode_info->y_resolution);
+	printf("    x_char_size:            %d\n", mode_info->x_char_size);
+	printf("    y_char_size:            %d\n", mode_info->y_char_size);
+	printf("    number_of_planes:       %d\n", mode_info->number_of_planes);
+	printf("    bits_per_pixel:         %d\n", mode_info->bits_per_pixel);
+	printf("    number_of_banks:        %d\n", mode_info->number_of_banks);
+	printf("    memory_model:           %d\n", mode_info->memory_model);
+	printf("    bank_size:              %d\n", mode_info->bank_size);
+	printf("    number_of_image_pages:  %d\n", mode_info->number_of_image_pages);
+	printf("    reserved0:              %d\n", mode_info->reserved0);
+	
+	printf("    red_mask_size:           %d\n", mode_info->red_mask_size);
+	printf("    red_field_position:      %d\n", mode_info->red_field_position);
+	printf("    green_mask_size:         %d\n", mode_info->green_mask_size);
+	printf("    green_field_position:    %d\n", mode_info->green_field_position);
+	printf("    blue_mask_size:          %d\n", mode_info->blue_mask_size);
+	printf("    blue_field_position:     %d\n", mode_info->blue_field_position);
+	printf("    reserved_mask_size:      %d\n", mode_info->reserved_mask_size);
+	printf("    reserved_field_position: %d\n", mode_info->reserved_field_position);
+	printf("    direct_color_mode_info:  %d\n", mode_info->direct_color_mode_info);
+	
+	printf("    phys_base:               %d\n", mode_info->phys_base);
+
+	printf("    linear_bytes_per_scanline:      %d\n", mode_info->linear_bytes_per_scanline);
+	printf("    banked_number_of_image_pages:   %d\n", mode_info->banked_number_of_image_pages);
+	printf("    linear_number_of_image_pages:   %d\n", mode_info->linear_number_of_image_pages);
+	printf("    linear_red_mask_size:           %d\n", mode_info->linear_red_mask_size);
+	printf("    linear_red_field_position:      %d\n", mode_info->linear_red_field_position);
+	printf("    linear_green_mask_size:         %d\n", mode_info->linear_green_mask_size);
+	printf("    linear_green_field_position:    %d\n", mode_info->linear_green_field_position);
+	printf("    linear_blue_mask_size:          %d\n", mode_info->linear_blue_mask_size);
+	printf("    linear_blue_field_position:     %d\n", mode_info->linear_blue_field_position);
+	printf("    linear_reserved_mask_size:      %d\n", mode_info->linear_reserved_mask_size);
+	printf("    linear_reserved_field_position: %d\n", mode_info->linear_reserved_field_position);
+	printf("    max_pixel_clock:                %d\n", mode_info->max_pixel_clock);
 	
 	return 0;
 }
